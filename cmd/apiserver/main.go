@@ -17,6 +17,7 @@ func init() {
 }
 
 // TODO: deploy on standalone server, maybe with nginx, maybe with heroku
+// TODO: think about multiple ports (with groupcache, simple example in bookmarks)
 
 func main() {
 	flag.Parse()

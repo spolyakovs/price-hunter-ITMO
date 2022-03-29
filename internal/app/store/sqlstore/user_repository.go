@@ -30,7 +30,7 @@ func (userRepository *UserRepository) Create(user *model.User) error {
 	)
 }
 
-func (userRepository *UserRepository) Find(id int) (*model.User, error) {
+func (userRepository *UserRepository) Find(id uint64) (*model.User, error) {
 	return userRepository.FindBy("id", id)
 }
 
@@ -89,7 +89,7 @@ func (userRepository *UserRepository) Update(user *model.User) error {
 	return nil
 }
 
-func (userRepository *UserRepository) Delete(id int) error {
+func (userRepository *UserRepository) Delete(id uint64) error {
 	deleteQuery := "DELETE FROM users WHERE id = $1;"
 
 	countResult, countResultErr := userRepository.store.db.Exec(

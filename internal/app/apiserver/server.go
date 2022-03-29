@@ -6,31 +6,28 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 )
 
 const (
-	sessionName        = "spolyakovs-price-hunter-ITMO"
-	ctxKeyUser  ctxKey = iota
+	ctxKeyUser ctxKey = iota
 	ctxKeyRequestID
 )
 
 type ctxKey int8
 
 type server struct {
-	router       *mux.Router
-	logger       *logrus.Logger
-	store        store.Store
-	sessionStore sessions.Store
+	router     *mux.Router
+	logger     *logrus.Logger
+	store      store.Store
+	sessionKey []byte
 }
 
-func newServer(store store.Store, sessionStore sessions.Store) *server {
+func newServer(store store.Store) *server {
 	server := &server{
-		router:       mux.NewRouter(),
-		logger:       logrus.New(),
-		store:        store,
-		sessionStore: sessionStore,
+		router: mux.NewRouter(),
+		logger: logrus.New(),
+		store:  store,
 	}
 
 	server.configureRouter()

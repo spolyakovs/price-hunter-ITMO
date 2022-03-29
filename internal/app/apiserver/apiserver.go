@@ -1,16 +1,15 @@
 package apiserver
 
 import (
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 	"net/http"
+	"os"
 
-	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
 )
-
-// TODO: read about GoLang 1.18
 
 func Start(config *Config) error {
 	startLogger := logrus.New()
@@ -29,10 +28,17 @@ func Start(config *Config) error {
 		return storeErr
 	}
 
-	// TODO: change cookies to JWT(???), prob need to use self written db table
+	// TODO: migrate to JWT
 
-	sessionStore := sessions.NewCookieStore([]byte(config.SessionKey))
-	srv := newServer(store, sessionStore)
+	os.Setenv("ACCESS_SECRET", config.AccessSecret)
+	os.Setenv("REFRESH_SECRET", config.RefreshSecret)
+
+	redisErr := tokenUtils.SetupRedis()
+	if redisErr != nil {
+		return redisErr
+	}
+
+	srv := newServer(store)
 	startLogger.Info("Server started")
 
 	return http.ListenAndServe(config.BindAddr, srv)

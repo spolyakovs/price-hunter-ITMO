@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 	"net/http"
 	"time"
 
@@ -52,19 +53,22 @@ func (server *server) logRequest(next http.Handler) http.Handler {
 
 func (server *server) authenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-		session, err := server.sessionStore.Get(req, sessionName)
-		if err != nil {
-			server.error(writer, req, http.StatusInternalServerError, err)
+		tokenAuth, tokenAuthErr := tokenUtils.ExtractTokenMetadata(req)
+		if tokenAuthErr != nil {
+			// TODO: change error
+			fmt.Printf("DEBUG: %s\n", tokenAuthErr.Error())
+			server.error(writer, req, http.StatusUnauthorized, tokenAuthErr)
+			return
+		}
+		userId, userIdErr := tokenUtils.FetchAuth(tokenAuth)
+		if userIdErr != nil {
+			// TODO: change error
+			fmt.Printf("DEBUG: %s\n", userIdErr.Error())
+			server.error(writer, req, http.StatusUnauthorized, userIdErr)
 			return
 		}
 
-		id, ok := session.Values["user_id"]
-		if !ok || id == nil {
-			server.error(writer, req, http.StatusUnauthorized, errNotAuthenticated)
-			return
-		}
-
-		user, err := server.store.Users().Find(id.(int))
+		user, err := server.store.Users().Find(userId)
 		if err != nil {
 			fmt.Printf("DEBUG: %s\n", err.Error())
 			server.error(writer, req, http.StatusUnauthorized, errNotAuthenticated)

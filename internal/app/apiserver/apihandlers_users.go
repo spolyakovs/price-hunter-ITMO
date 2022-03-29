@@ -3,11 +3,11 @@ package apiserver
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"strconv"
-
 	"github.com/gorilla/mux"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
+	"net/http"
+	"strconv"
 )
 
 func (server *server) handleRegistration() http.HandlerFunc {
@@ -42,7 +42,7 @@ func (server *server) handleRegistration() http.HandlerFunc {
 
 func (server *server) handleLogin() http.HandlerFunc {
 	type request struct {
-		Email    string `json:"email"`
+		Username string `json:"username"`
 		Password string `json:"password"`
 	}
 
@@ -53,26 +53,33 @@ func (server *server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		user, err := server.store.Users().FindBy("email", requestStruct.Email)
-		if err != nil || !user.ComparePassword(requestStruct.Password) {
-			fmt.Printf("DEBUG: %s\n", err.Error())
+		user, userErr := server.store.Users().FindBy("username", requestStruct.Username)
+		if userErr != nil || !user.ComparePassword(requestStruct.Password) {
+			fmt.Printf("DEBUG: %s\n", userErr.Error())
 			server.error(writer, req, http.StatusUnauthorized, errIncorrectEmailOrPassword)
 			return
 		}
 
-		session, err := server.sessionStore.Get(req, sessionName)
-		if err != nil {
-			server.error(writer, req, http.StatusInternalServerError, err)
+		ts, tokenErr := tokenUtils.CreateToken(user.ID)
+		if tokenErr != nil {
+			fmt.Printf("DEBUG: %s\n", tokenErr.Error())
+			server.error(writer, req, http.StatusInternalServerError, tokenErr)
 			return
 		}
 
-		session.Values["user_id"] = user.ID
-		if err := server.sessionStore.Save(req, writer, session); err != nil {
-			server.error(writer, req, http.StatusInternalServerError, err)
+		saveErr := tokenUtils.CreateAuth(user.ID, ts)
+		if saveErr != nil {
+			fmt.Printf("DEBUG: %s\n", saveErr.Error())
+			server.error(writer, req, http.StatusInternalServerError, saveErr)
 			return
 		}
 
-		server.respond(writer, req, http.StatusOK, nil)
+		tokens := map[string]string{
+			"access_token":  ts.AccessToken,
+			"refresh_token": ts.RefreshToken,
+		}
+
+		server.respond(writer, req, http.StatusOK, tokens)
 	}
 }
 
@@ -81,6 +88,9 @@ func (server *server) handleUsersMe() http.HandlerFunc {
 		server.respond(writer, req, http.StatusOK, req.Context().Value(ctxKeyUser).(*model.User))
 	}
 }
+
+// TODO: userUpdateEmail (StatusOk)
+// TODO: userUpdatePassword (New token, старые ВСЕ удаляются)
 
 func (server *server) handleUsersUpdate() http.HandlerFunc {
 	type request struct {
@@ -119,12 +129,12 @@ func (server *server) handleUsersDelete() http.HandlerFunc {
 			return
 		}
 
-		session, err := server.sessionStore.Get(req, sessionName)
-		if err != nil {
-			server.error(writer, req, http.StatusInternalServerError, err)
-			return
-		}
-		session.Values["user_id"] = nil
+		//session, err := server.sessionStore.Get(req, sessionName)
+		//if err != nil {
+		//	server.error(writer, req, http.StatusInternalServerError, err)
+		//	return
+		//}
+		//session.Values["user_id"] = nil
 
 		server.respond(writer, req, http.StatusOK, nil)
 	}
@@ -134,7 +144,7 @@ func (server *server) handleUsersGetByID() http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
 		vars := mux.Vars(req)
 
-		id, err := strconv.Atoi(vars["id"])
+		id, err := strconv.ParseUint(vars["id"], 10, 64)
 		if err != nil {
 			fmt.Printf("DEBUG: %s\n", err.Error())
 			server.error(writer, req, http.StatusBadRequest, errWrongPathValue)

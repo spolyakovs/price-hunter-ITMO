@@ -6,10 +6,10 @@ import (
 
 type UserRepository interface {
 	Create(*model.User) error
-	Find(int) (*model.User, error)
+	Find(uint64) (*model.User, error)
 	FindBy(string, interface{}) (*model.User, error)
 	Update(*model.User) error
-	Delete(int) error
+	Delete(uint64) error
 }
 
 type TeamRepository interface {
