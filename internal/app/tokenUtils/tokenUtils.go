@@ -2,13 +2,14 @@ package tokenUtils
 
 import (
 	"fmt"
-	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 )
 
 type TokenDetails struct {
@@ -22,7 +23,8 @@ type TokenDetails struct {
 
 func CreateToken(userid uint64) (*TokenDetails, error) {
 	td := &TokenDetails{}
-	td.AtExpires = time.Now().Add(time.Minute * 15).Unix()
+	//TODO: change AtExpires to 15 min
+	td.AtExpires = time.Now().Add(time.Minute * 1).Unix()
 	td.AccessUuid = uuid.New().String()
 
 	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
@@ -70,7 +72,7 @@ func CreateAuth(userid uint64, td *TokenDetails) error {
 	return nil
 }
 
-func extractToken(r *http.Request) string {
+func ExtractToken(r *http.Request) string {
 	bearToken := r.Header.Get("Authorization")
 	strArr := strings.Split(bearToken, " ")
 	if len(strArr) == 2 {
@@ -79,8 +81,7 @@ func extractToken(r *http.Request) string {
 	return ""
 }
 
-func verifyToken(r *http.Request) (*jwt.Token, error) {
-	tokenString := extractToken(r)
+func verifyToken(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		//Make sure that the token method conform to "SigningMethodHMAC"
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -94,8 +95,8 @@ func verifyToken(r *http.Request) (*jwt.Token, error) {
 	return token, nil
 }
 
-func TokenValid(r *http.Request) error {
-	token, err := verifyToken(r)
+func TokenValid(tokenString string) error {
+	token, err := verifyToken(tokenString)
 	if err != nil {
 		return err
 	}
@@ -110,8 +111,13 @@ type AccessDetails struct {
 	UserId     uint64
 }
 
-func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
-	token, err := verifyToken(r)
+type RefreshDetails struct {
+	RefreshUuid string
+	UserId      uint64
+}
+
+func ExtractAccessTokenMetadata(tokenString string) (*AccessDetails, error) {
+	token, err := verifyToken(tokenString)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +139,33 @@ func ExtractTokenMetadata(r *http.Request) (*AccessDetails, error) {
 	return nil, fmt.Errorf("something wrong with token claims: %+v", token.Claims)
 }
 
+func ExtractRefreshTokenMetadata(tokenString string) (*RefreshDetails, error) {
+	token, err := verifyToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if ok && token.Valid {
+		refreshUuid, ok := claims["refresh_uuid"].(string)
+		if !ok {
+			return nil, fmt.Errorf("something wrong with refresh token uuid: %+v", claims)
+		}
+
+		userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		return &RefreshDetails{
+			RefreshUuid: refreshUuid,
+			UserId:      userId,
+		}, nil
+	}
+	return nil, fmt.Errorf("something wrong with token claims: %+v", token.Claims)
+}
+
 // TODO: implement this into login, registration and middlewares (don't forget about deleting tokens)
-// TODO: continue by guide (Закладки/ИТМО/ВКР/Golang JWT Auth)
 
 func FetchAuth(authD *AccessDetails) (uint64, error) {
 	userid, err := redisStore.Get(authD.AccessUuid).Result()
@@ -143,4 +174,12 @@ func FetchAuth(authD *AccessDetails) (uint64, error) {
 	}
 	userID, _ := strconv.ParseUint(userid, 10, 64)
 	return userID, nil
+}
+
+func DeleteAuth(uuid string) error {
+	err := redisStore.Del(uuid).Err()
+	if err != nil {
+		return err
+	}
+	return nil
 }

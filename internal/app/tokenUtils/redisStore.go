@@ -1,8 +1,9 @@
 package tokenUtils
 
 import (
-	"github.com/go-redis/redis"
 	"os"
+
+	"github.com/go-redis/redis"
 )
 
 var redisStore *redis.Client
@@ -15,8 +16,6 @@ func SetupRedis() error {
 	redisStore = redis.NewClient(&redis.Options{
 		Addr: dsn,
 	})
-	println("+")
 	_, err := redisStore.Ping().Result()
-	println("++")
 	return err
 }

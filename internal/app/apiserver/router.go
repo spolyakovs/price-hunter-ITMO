@@ -8,6 +8,8 @@ func (server *server) configureRouter() {
 	server.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
 	server.router.HandleFunc("/registration", server.handleRegistration()).Methods("POST")
 	server.router.HandleFunc("/login", server.handleLogin()).Methods("POST")
+	server.router.HandleFunc("/logout", server.handleLogout()).Methods("POST")
+	server.router.HandleFunc("/token/refresh", server.handleRefreshToken()).Methods("POST")
 
 	private := server.router.PathPrefix("/private").Subrouter()
 	private.Use(server.authenticateUser)

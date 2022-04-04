@@ -3,12 +3,17 @@ package apiserver
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strconv"
+
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
-	"net/http"
-	"strconv"
 )
+
+//TODO: add refresh_token request
+//TODO: restrincting number of games in games_list request (and add offset param)
 
 func (server *server) handleRegistration() http.HandlerFunc {
 	type request struct {
@@ -60,14 +65,14 @@ func (server *server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		ts, tokenErr := tokenUtils.CreateToken(user.ID)
+		tokenDetails, tokenErr := tokenUtils.CreateToken(user.ID)
 		if tokenErr != nil {
 			fmt.Printf("DEBUG: %s\n", tokenErr.Error())
 			server.error(writer, req, http.StatusInternalServerError, tokenErr)
 			return
 		}
 
-		saveErr := tokenUtils.CreateAuth(user.ID, ts)
+		saveErr := tokenUtils.CreateAuth(user.ID, tokenDetails)
 		if saveErr != nil {
 			fmt.Printf("DEBUG: %s\n", saveErr.Error())
 			server.error(writer, req, http.StatusInternalServerError, saveErr)
@@ -75,8 +80,87 @@ func (server *server) handleLogin() http.HandlerFunc {
 		}
 
 		tokens := map[string]string{
-			"access_token":  ts.AccessToken,
-			"refresh_token": ts.RefreshToken,
+			"access_token":  tokenDetails.AccessToken,
+			"refresh_token": tokenDetails.RefreshToken,
+		}
+
+		server.respond(writer, req, http.StatusOK, tokens)
+	}
+}
+
+func (server *server) handleLogout() http.HandlerFunc {
+	return func(writer http.ResponseWriter, req *http.Request) {
+		//TODO: think about errors
+		tokenString := tokenUtils.ExtractToken(req)
+		tokenData, tokenDataErr := tokenUtils.ExtractAccessTokenMetadata(tokenString)
+		if tokenDataErr != nil {
+			validErr, ok := tokenDataErr.(*jwt.ValidationError)
+			if ok && validErr.Errors == jwt.ValidationErrorExpired {
+				server.respond(writer, req, http.StatusOK, nil)
+				return
+			}
+			// TODO: change error
+			fmt.Printf("DEBUG: %s\n", tokenDataErr.Error())
+			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
+			return
+		}
+
+		delErr := tokenUtils.DeleteAuth(tokenData.AccessUuid)
+		if delErr != nil {
+			// TODO: change error
+			fmt.Printf("DEBUG: %s\n", delErr.Error())
+			server.error(writer, req, http.StatusInternalServerError, delErr)
+			return
+		}
+
+		server.respond(writer, req, http.StatusOK, nil)
+	}
+}
+
+func (server *server) handleRefreshToken() http.HandlerFunc {
+	type request struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+
+	return func(writer http.ResponseWriter, req *http.Request) {
+		requestStruct := &request{}
+		if err := json.NewDecoder(req.Body).Decode(requestStruct); err != nil {
+			server.error(writer, req, http.StatusBadRequest, err)
+			return
+		}
+
+		tokenData, tokenDataErr := tokenUtils.ExtractRefreshTokenMetadata(requestStruct.RefreshToken)
+		if tokenDataErr != nil {
+			// TODO: change error
+			fmt.Printf("DEBUG: %s\n", tokenDataErr.Error())
+			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
+			return
+		}
+
+		delErr := tokenUtils.DeleteAuth(tokenData.RefreshUuid)
+		if delErr != nil {
+			fmt.Printf("DEBUG: %s\n", delErr.Error())
+			server.error(writer, req, http.StatusInternalServerError, delErr)
+			return
+		}
+
+		tokenDetails, createErr := tokenUtils.CreateToken(tokenData.UserId)
+		if createErr != nil {
+			fmt.Printf("DEBUG: %s\n", createErr.Error())
+			server.error(writer, req, http.StatusInternalServerError, createErr)
+			return
+		}
+
+		saveErr := tokenUtils.CreateAuth(tokenData.UserId, tokenDetails)
+		if saveErr != nil {
+			fmt.Printf("DEBUG: %s\n", saveErr.Error())
+			server.error(writer, req, http.StatusInternalServerError, saveErr)
+			return
+		}
+
+		tokens := map[string]string{
+			"access_token":  tokenDetails.AccessToken,
+			"refresh_token": tokenDetails.RefreshToken,
 		}
 
 		server.respond(writer, req, http.StatusOK, tokens)

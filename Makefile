@@ -1,6 +1,7 @@
 .PHONY: build
 build:
 	go build -v ./cmd/apiserver
+	sudo systemctl restart redis-server.service
 
 .PHONY: test
 test:

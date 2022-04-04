@@ -1,9 +1,10 @@
 package apiserver
 
 import (
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 	"net/http"
 	"os"
+
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -27,8 +28,6 @@ func Start(config *Config) error {
 	if storeErr != nil {
 		return storeErr
 	}
-
-	// TODO: migrate to JWT
 
 	os.Setenv("ACCESS_SECRET", config.AccessSecret)
 	os.Setenv("REFRESH_SECRET", config.RefreshSecret)

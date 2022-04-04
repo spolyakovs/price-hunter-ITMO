@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 	"net/http"
 	"time"
+
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -26,7 +27,7 @@ func (server *server) logRequest(next http.Handler) http.Handler {
 			"remote_addr": req.RemoteAddr,
 			"request_id":  req.Context().Value(ctxKeyRequestID),
 		})
-		logger.Infof("started %s %s", req.Method, req.RequestURI)
+		logger.Infof("started %s %s\n", req.Method, req.RequestURI)
 
 		start := time.Now()
 		rw := &responseWriter{writer, http.StatusOK}
@@ -53,14 +54,15 @@ func (server *server) logRequest(next http.Handler) http.Handler {
 
 func (server *server) authenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-		tokenAuth, tokenAuthErr := tokenUtils.ExtractTokenMetadata(req)
-		if tokenAuthErr != nil {
+		tokenString := tokenUtils.ExtractToken(req)
+		tokenData, tokenDataErr := tokenUtils.ExtractAccessTokenMetadata(tokenString)
+		if tokenDataErr != nil {
 			// TODO: change error
-			fmt.Printf("DEBUG: %s\n", tokenAuthErr.Error())
-			server.error(writer, req, http.StatusUnauthorized, tokenAuthErr)
+			fmt.Printf("DEBUG: %s\n", tokenDataErr.Error())
+			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
 			return
 		}
-		userId, userIdErr := tokenUtils.FetchAuth(tokenAuth)
+		userId, userIdErr := tokenUtils.FetchAuth(tokenData)
 		if userIdErr != nil {
 			// TODO: change error
 			fmt.Printf("DEBUG: %s\n", userIdErr.Error())
