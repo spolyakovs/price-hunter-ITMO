@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,7 +13,6 @@ import (
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 )
 
-//TODO: add refresh_token request
 //TODO: restrincting number of games in games_list request (and add offset param)
 
 func (server *server) handleRegistration() http.HandlerFunc {
@@ -41,7 +41,19 @@ func (server *server) handleRegistration() http.HandlerFunc {
 			return
 		}
 
-		server.respond(writer, req, http.StatusCreated, user)
+		tokenDetails, tokenErr := tokenUtils.CreateToken(user.ID)
+		if tokenErr != nil {
+			fmt.Printf("DEBUG: %s\n", tokenErr.Error())
+			server.error(writer, req, http.StatusInternalServerError, tokenErr)
+			return
+		}
+
+		tokens := map[string]string{
+			"access_token":  tokenDetails.AccessToken,
+			"refresh_token": tokenDetails.RefreshToken,
+		}
+
+		server.respond(writer, req, http.StatusCreated, tokens)
 	}
 }
 
@@ -72,13 +84,6 @@ func (server *server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		saveErr := tokenUtils.CreateAuth(user.ID, tokenDetails)
-		if saveErr != nil {
-			fmt.Printf("DEBUG: %s\n", saveErr.Error())
-			server.error(writer, req, http.StatusInternalServerError, saveErr)
-			return
-		}
-
 		tokens := map[string]string{
 			"access_token":  tokenDetails.AccessToken,
 			"refresh_token": tokenDetails.RefreshToken,
@@ -90,7 +95,6 @@ func (server *server) handleLogin() http.HandlerFunc {
 
 func (server *server) handleLogout() http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		//TODO: think about errors
 		tokenString := tokenUtils.ExtractToken(req)
 		tokenData, tokenDataErr := tokenUtils.ExtractAccessTokenMetadata(tokenString)
 		if tokenDataErr != nil {
@@ -151,13 +155,6 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 			return
 		}
 
-		saveErr := tokenUtils.CreateAuth(tokenData.UserId, tokenDetails)
-		if saveErr != nil {
-			fmt.Printf("DEBUG: %s\n", saveErr.Error())
-			server.error(writer, req, http.StatusInternalServerError, saveErr)
-			return
-		}
-
 		tokens := map[string]string{
 			"access_token":  tokenDetails.AccessToken,
 			"refresh_token": tokenDetails.RefreshToken,
@@ -173,14 +170,9 @@ func (server *server) handleUsersMe() http.HandlerFunc {
 	}
 }
 
-// TODO: userUpdateEmail (StatusOk)
-// TODO: userUpdatePassword (New token, старые ВСЕ удаляются)
-
-func (server *server) handleUsersUpdate() http.HandlerFunc {
+func (server *server) handleUsersChangeEmail() http.HandlerFunc {
 	type request struct {
-		Username string `json:"username"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		NewEmail string `json:"new_email"`
 	}
 
 	return func(writer http.ResponseWriter, req *http.Request) {
@@ -190,17 +182,47 @@ func (server *server) handleUsersUpdate() http.HandlerFunc {
 			return
 		}
 
-		user := &model.User{
-			ID:       req.Context().Value(ctxKeyUser).(*model.User).ID,
-			Username: requestStruct.Username,
-			Email:    requestStruct.Email,
-			Password: requestStruct.Password,
-		}
+		user := req.Context().Value(ctxKeyUser).(*model.User)
 
-		if err := server.store.Users().Update(user); err != nil {
+		if err := server.store.Users().UpdateEmail(requestStruct.NewEmail, user.ID); err != nil {
 			server.error(writer, req, http.StatusInternalServerError, err)
 			return
 		}
+		//TODO: delete old tokens
+		server.respond(writer, req, http.StatusOK, nil)
+	}
+}
+
+func (server *server) handleUsersChangePassword() http.HandlerFunc {
+	type request struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+
+	return func(writer http.ResponseWriter, req *http.Request) {
+		requestStruct := &request{}
+		if err := json.NewDecoder(req.Body).Decode(requestStruct); err != nil {
+			server.error(writer, req, http.StatusBadRequest, err)
+			return
+		}
+
+		user := req.Context().Value(ctxKeyUser).(*model.User)
+
+		if user == nil {
+			server.error(writer, req, http.StatusInternalServerError, errors.New("No user after authentication"))
+			return
+		}
+
+		if !user.ComparePassword(requestStruct.CurrentPassword) {
+			server.respond(writer, req, http.StatusOK, map[string]string{"error": "Wrong password"})
+			return
+		}
+
+		if err := server.store.Users().UpdatePassword(requestStruct.NewPassword, user.ID); err != nil {
+			server.error(writer, req, http.StatusInternalServerError, err)
+			return
+		}
+		//TODO: delete old tokens
 		server.respond(writer, req, http.StatusOK, user)
 	}
 }

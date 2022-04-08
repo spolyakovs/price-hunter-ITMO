@@ -82,8 +82,7 @@ func createTableDrivers(tx *sqlx.Tx) error {
 }
 
 func createTableRaces(tx *sqlx.Tx) error {
-	createTableRacesQuery := "DROP TABLE IF EXISTS races CASCADE; " +
-		"CREATE TABLE IF NOT EXISTS races (" +
+	createTableRacesQuery := "CREATE TABLE IF NOT EXISTS races (" +
 		"id bigserial NOT NULL PRIMARY KEY," +
 		"name varchar NOT NULL UNIQUE," +
 		"location varchar NOT NULL," +

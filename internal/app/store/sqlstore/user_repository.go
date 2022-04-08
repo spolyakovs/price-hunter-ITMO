@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 
+	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/go-ozzo/ozzo-validation/is"
+
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 )
@@ -13,6 +16,7 @@ type UserRepository struct {
 }
 
 func (userRepository *UserRepository) Create(user *model.User) error {
+	//TODO: distinquish between different types of errors
 	if err := user.Validate(); err != nil {
 		return err
 	}
@@ -53,23 +57,50 @@ func (userRepository *UserRepository) FindBy(columnName string, value interface{
 	return user, nil
 }
 
-func (userRepository *UserRepository) Update(user *model.User) error {
-	if err := user.Validate(); err != nil {
+func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64) error {
+	if err := validation.Validate(newEmail, validation.Required, is.Email); err != nil {
 		return err
 	}
 
-	if err := user.BeforeCreate(); err != nil {
-		return err
+	updateEmailQuery := "UPDATE users " +
+		`SET email = $1 ` +
+		`WHERE id = $2;`
+
+	countResult, countResultErr := userRepository.store.db.Exec(
+		updateEmailQuery,
+		newEmail,
+		userId,
+	)
+
+	if countResultErr != nil {
+		return countResultErr
 	}
 
-	updateQuery := "UPDATE users " +
-		`SET username = :username, ` +
-		`email = :email, ` +
-		`encrypted_password = :encrypted_password ` +
-		`WHERE id = :id;`
-	countResult, countResultErr := userRepository.store.db.NamedExec(
-		updateQuery,
-		user,
+	count, countErr := countResult.RowsAffected()
+
+	if countErr != nil {
+		return countErr
+	}
+
+	if count == 0 {
+		return store.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (userRepository *UserRepository) UpdatePassword(newPassword string, userId uint64) error {
+	if err := model.ValidatePassword(newPassword); err != nil {
+		return nil
+	}
+
+	updatePasswordQuery := "UPDATE users " +
+		`SET encrypted_password = $1 ` +
+		`WHERE id = $2;`
+	countResult, countResultErr := userRepository.store.db.Exec(
+		updatePasswordQuery,
+		newPassword,
+		userId,
 	)
 
 	if countResultErr != nil {

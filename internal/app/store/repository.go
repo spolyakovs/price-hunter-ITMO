@@ -8,7 +8,8 @@ type UserRepository interface {
 	Create(*model.User) error
 	Find(uint64) (*model.User, error)
 	FindBy(string, interface{}) (*model.User, error)
-	Update(*model.User) error
+	UpdateEmail(string, uint64) error
+	UpdatePassword(string, uint64) error
 	Delete(uint64) error
 }
 

@@ -16,7 +16,8 @@ func init() {
 	flag.StringVar(&configPath, "config-path", "configs/apiserver.toml", "path to config file")
 }
 
-// TODO: deploy on standalone server, maybe with nginx, maybe with heroku
+// TODO: tmp deploy after working token and user requests with heroku
+// TODO: deploy on standalone server, maybe with nginx, may be with docker, maybe with heroku
 // TODO: think about multiple ports (with groupcache, simple example in bookmarks)
 
 func main() {

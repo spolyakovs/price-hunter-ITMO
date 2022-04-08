@@ -22,54 +22,50 @@ type TokenDetails struct {
 }
 
 func CreateToken(userid uint64) (*TokenDetails, error) {
-	td := &TokenDetails{}
-	//TODO: change AtExpires to 15 min
-	td.AtExpires = time.Now().Add(time.Minute * 1).Unix()
-	td.AccessUuid = uuid.New().String()
+	tokenDetails := &TokenDetails{}
+	tokenDetails.AtExpires = time.Now().Add(time.Minute * 15).Unix()
+	tokenDetails.AccessUuid = uuid.New().String()
 
-	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
-	td.RefreshUuid = uuid.New().String()
+	tokenDetails.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
+	tokenDetails.RefreshUuid = uuid.New().String()
 
 	var err error
 	//Creating Access Token
-	atClaims := jwt.MapClaims{}
-	atClaims["authorized"] = true
-	atClaims["access_uuid"] = td.AccessUuid
-	atClaims["user_id"] = userid
-	atClaims["exp"] = td.AtExpires
-	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
-	td.AccessToken, err = at.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
+	accessTokenClaims := jwt.MapClaims{}
+	accessTokenClaims["authorized"] = true
+	accessTokenClaims["access_uuid"] = tokenDetails.AccessUuid
+	accessTokenClaims["user_id"] = userid
+	accessTokenClaims["exp"] = tokenDetails.AtExpires
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenClaims)
+	tokenDetails.AccessToken, err = accessToken.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
 	if err != nil {
 		return nil, err
 	}
 
 	//Creating Refresh Token
-	rtClaims := jwt.MapClaims{}
-	rtClaims["refresh_uuid"] = td.RefreshUuid
-	rtClaims["user_id"] = userid
-	rtClaims["exp"] = td.RtExpires
-	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, rtClaims)
-	td.RefreshToken, err = rt.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
+	refreshTokenClaims := jwt.MapClaims{}
+	refreshTokenClaims["refresh_uuid"] = tokenDetails.RefreshUuid
+	refreshTokenClaims["user_id"] = userid
+	refreshTokenClaims["exp"] = tokenDetails.RtExpires
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshTokenClaims)
+	tokenDetails.RefreshToken, err = refreshToken.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
 	if err != nil {
 		return nil, err
 	}
-	return td, nil
-}
 
-func CreateAuth(userid uint64, td *TokenDetails) error {
-	at := time.Unix(td.AtExpires, 0) //converting Unix to UTC(to Time object)
-	rt := time.Unix(td.RtExpires, 0)
+	accessTokenExpires := time.Unix(tokenDetails.AtExpires, 0) //converting Unix to UTC(to Time object)
+	refreshTokenExpires := time.Unix(tokenDetails.RtExpires, 0)
 	now := time.Now()
 
-	accessErr := redisStore.Set(td.AccessUuid, strconv.Itoa(int(userid)), at.Sub(now)).Err()
+	accessErr := redisStore.Set(tokenDetails.AccessUuid, strconv.Itoa(int(userid)), accessTokenExpires.Sub(now)).Err()
 	if accessErr != nil {
-		return accessErr
+		return nil, accessErr
 	}
-	refreshErr := redisStore.Set(td.RefreshUuid, strconv.Itoa(int(userid)), rt.Sub(now)).Err()
+	refreshErr := redisStore.Set(tokenDetails.RefreshUuid, strconv.Itoa(int(userid)), refreshTokenExpires.Sub(now)).Err()
 	if refreshErr != nil {
-		return refreshErr
+		return nil, refreshErr
 	}
-	return nil
+	return tokenDetails, nil
 }
 
 func ExtractToken(r *http.Request) string {
@@ -165,7 +161,7 @@ func ExtractRefreshTokenMetadata(tokenString string) (*RefreshDetails, error) {
 	return nil, fmt.Errorf("something wrong with token claims: %+v", token.Claims)
 }
 
-// TODO: implement this into login, registration and middlewares (don't forget about deleting tokens)
+// TODO: implement this into changeEmail and changePassword (don't forget about deleting tokens)
 
 func FetchAuth(authD *AccessDetails) (uint64, error) {
 	userid, err := redisStore.Get(authD.AccessUuid).Result()
