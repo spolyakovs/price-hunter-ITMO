@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 
 	"github.com/google/uuid"
@@ -58,21 +59,26 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 		tokenData, tokenDataErr := tokenUtils.ExtractAccessTokenMetadata(tokenString)
 		if tokenDataErr != nil {
 			// TODO: change error
-			fmt.Printf("DEBUG: %s\n", tokenDataErr.Error())
+			tokenDataErr = errors.Wrap(tokenDataErr, "Couldn't get token metadata")
+			server.log(tokenDataErr)
 			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
 			return
 		}
 		userId, userIdErr := tokenUtils.FetchAuth(tokenData)
 		if userIdErr != nil {
 			// TODO: change error
-			fmt.Printf("DEBUG: %s\n", userIdErr.Error())
+			userIdErr = errors.Wrap(userIdErr, "Couldn't fetch auth")
+			server.log(userIdErr)
 			server.error(writer, req, http.StatusUnauthorized, userIdErr)
 			return
 		}
 
 		user, err := server.store.Users().Find(userId)
 		if err != nil {
-			fmt.Printf("DEBUG: %s\n", err.Error())
+			// TODO: probably this is how errors should be logged and sent
+			err = errors.Wrap(err, "Couldn't find user")
+			err = errors.Wrap(err, errNotAuthenticated.Error())
+			server.log(err)
 			server.error(writer, req, http.StatusUnauthorized, errNotAuthenticated)
 			return
 		}
@@ -81,8 +87,16 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 	})
 }
 
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
+func (server *server) log(err error) {
+	fmt.Printf("%v\n", err)
+}
+
 func (server *server) error(writer http.ResponseWriter, req *http.Request, code int, err error) {
-	server.respond(writer, req, code, map[string]string{"error": err.Error()})
+	server.respond(writer, req, code, map[string]string{"error": fmt.Sprintf("%v", err)})
 }
 
 func (server *server) respond(writer http.ResponseWriter, req *http.Request, code int, data interface{}) {

@@ -2,6 +2,7 @@ package model
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -14,12 +15,16 @@ type User struct {
 }
 
 func (user *User) Validate() error {
-	return validation.ValidateStruct(
+	if err := validation.ValidateStruct(
 		user,
 		validation.Field(&user.Username, validation.By(ValidateUsername)),
 		validation.Field(&user.Email, validation.By(ValidateEmail)),
 		validation.Field(&user.Password, validation.By(ValidatePassword)),
-	)
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (user *User) BeforeCreate() error {
@@ -47,7 +52,7 @@ func (user *User) ComparePassword(password string) bool {
 func encryptString(s string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.MinCost)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(ErrEncryptionFailed, err.Error())
 	}
 
 	return string(b), nil

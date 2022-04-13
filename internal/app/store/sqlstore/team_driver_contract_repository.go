@@ -65,7 +65,7 @@ func (teamDriverContractRepository *TeamDriverContractRepository) FindBy(columnN
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -100,7 +100,7 @@ func (teamDriverContractRepository *TeamDriverContractRepository) FindAllBy(colu
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -145,7 +145,7 @@ func (teamDriverContractRepository *TeamDriverContractRepository) Update(contrac
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil
@@ -170,7 +170,7 @@ func (teamDriverContractRepository *TeamDriverContractRepository) Delete(id int)
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil

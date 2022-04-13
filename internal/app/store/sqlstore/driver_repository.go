@@ -36,7 +36,7 @@ func (driverRepository *DriverRepository) FindBy(columnName string, value interf
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -55,7 +55,7 @@ func (driverRepository *DriverRepository) FindAllBy(columnName string, value int
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -73,7 +73,7 @@ func (driverRepository *DriverRepository) GetAll() ([]*model.Driver, error) {
 		findQuery,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -105,7 +105,7 @@ func (driverRepository *DriverRepository) Update(driver *model.Driver) error {
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil
@@ -130,7 +130,7 @@ func (driverRepository *DriverRepository) Delete(id int) error {
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil

@@ -6,6 +6,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	"github.com/pkg/errors"
 
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
@@ -16,7 +17,6 @@ type UserRepository struct {
 }
 
 func (userRepository *UserRepository) Create(user *model.User) error {
-	//TODO: distinquish between different types of errors
 	if err := user.Validate(); err != nil {
 		return err
 	}
@@ -27,11 +27,13 @@ func (userRepository *UserRepository) Create(user *model.User) error {
 
 	createQuery := "INSERT INTO users (username, email, encrypted_password) VALUES ($1, $2, $3) RETURNING id;"
 
-	return userRepository.store.db.Get(
+	err := userRepository.store.db.Get(
 		&user.ID,
 		createQuery,
 		user.Username, user.Email, user.EncryptedPassword,
 	)
+
+	return errors.Wrap(store.ErrCreate, err.Error())
 }
 
 func (userRepository *UserRepository) Find(id uint64) (*model.User, error) {
@@ -48,10 +50,10 @@ func (userRepository *UserRepository) FindBy(columnName string, value interface{
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
-		return nil, err
+		return nil, errors.Wrap(store.ErrUnknownSQL, err.Error())
 	}
 
 	return user, nil
@@ -73,17 +75,17 @@ func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64
 	)
 
 	if countResultErr != nil {
-		return countResultErr
+		return errors.Wrap(store.ErrUnknownSQL, countResultErr.Error())
 	}
 
 	count, countErr := countResult.RowsAffected()
 
 	if countErr != nil {
-		return countErr
+		return errors.Wrap(store.ErrUnknownSQL, countErr.Error())
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil
@@ -104,17 +106,17 @@ func (userRepository *UserRepository) UpdatePassword(newPassword string, userId 
 	)
 
 	if countResultErr != nil {
-		return countResultErr
+		return errors.Wrap(store.ErrUnknownSQL, countResultErr.Error())
 	}
 
 	count, countErr := countResult.RowsAffected()
 
 	if countErr != nil {
-		return countErr
+		return errors.Wrap(store.ErrUnknownSQL, countErr.Error())
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil
@@ -129,17 +131,17 @@ func (userRepository *UserRepository) Delete(id uint64) error {
 	)
 
 	if countResultErr != nil {
-		return countResultErr
+		return errors.Wrap(store.ErrUnknownSQL, countResultErr.Error())
 	}
 
 	count, countErr := countResult.RowsAffected()
 
 	if countErr != nil {
-		return countErr
+		return errors.Wrap(store.ErrUnknownSQL, countErr.Error())
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil

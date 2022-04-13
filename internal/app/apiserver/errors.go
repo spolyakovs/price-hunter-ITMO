@@ -1,6 +1,6 @@
 package apiserver
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	errWrongPathValue           = errors.New("Incorrect path value")

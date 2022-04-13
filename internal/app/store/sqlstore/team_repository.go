@@ -35,7 +35,7 @@ func (teamRepository *TeamRepository) FindBy(columnName string, value interface{
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -54,7 +54,7 @@ func (teamRepository *TeamRepository) FindAllBy(columnName string, value interfa
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -72,7 +72,7 @@ func (teamRepository *TeamRepository) GetAll() ([]*model.Team, error) {
 		findQuery,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -103,7 +103,7 @@ func (teamRepository *TeamRepository) Update(team *model.Team) error {
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil
@@ -128,7 +128,7 @@ func (teamRepository *TeamRepository) Delete(id int) error {
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil

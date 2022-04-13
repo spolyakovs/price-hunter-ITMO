@@ -57,7 +57,7 @@ func (raceResultRepository *RaceResultRepository) FindBy(columnName string, valu
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -93,7 +93,7 @@ func (raceResultRepository *RaceResultRepository) FindAllBy(columnName string, v
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, store.ErrRecordNotFound
+			return nil, store.ErrNotFound
 		}
 
 		return nil, err
@@ -125,7 +125,7 @@ func (raceResultRepository *RaceResultRepository) Update(raceResult *model.RaceR
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil
@@ -150,7 +150,7 @@ func (raceResultRepository *RaceResultRepository) Delete(id int) error {
 	}
 
 	if count == 0 {
-		return store.ErrRecordNotFound
+		return store.ErrNotFound
 	}
 
 	return nil

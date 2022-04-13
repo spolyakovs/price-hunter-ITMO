@@ -2,10 +2,11 @@ package apiserver
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/pkg/errors"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
@@ -13,7 +14,9 @@ import (
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 )
 
-//TODO: restrincting number of games in games_list request (and add offset param)
+// TODO: get app info 1 at a time for steam at least
+// TODO: ONLY english letters in game name (debatable about description)
+// TODO: restrincting number of games in games_list request (and add offset param)
 
 func (server *server) handleRegistration() http.HandlerFunc {
 	type request struct {
@@ -136,21 +139,21 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 		tokenData, tokenDataErr := tokenUtils.ExtractRefreshTokenMetadata(requestStruct.RefreshToken)
 		if tokenDataErr != nil {
 			// TODO: change error
-			fmt.Printf("DEBUG: %s\n", tokenDataErr.Error())
+			server.log(tokenDataErr)
 			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
 			return
 		}
 
 		delErr := tokenUtils.DeleteAuth(tokenData.RefreshUuid)
 		if delErr != nil {
-			fmt.Printf("DEBUG: %s\n", delErr.Error())
+			server.log(delErr)
 			server.error(writer, req, http.StatusInternalServerError, delErr)
 			return
 		}
 
 		tokenDetails, createErr := tokenUtils.CreateToken(tokenData.UserId)
 		if createErr != nil {
-			fmt.Printf("DEBUG: %s\n", createErr.Error())
+			server.log(createErr)
 			server.error(writer, req, http.StatusInternalServerError, createErr)
 			return
 		}
@@ -166,6 +169,10 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 
 func (server *server) handleUsersMe() http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
+		if err := tokenUtils.DeleteAllAuths(req.Context().Value(ctxKeyUser).(*model.User).ID); err != nil {
+			server.log(err)
+			server.error(writer, req, http.StatusBadRequest, err)
+		}
 		server.respond(writer, req, http.StatusOK, req.Context().Value(ctxKeyUser).(*model.User))
 	}
 }
@@ -222,6 +229,7 @@ func (server *server) handleUsersChangePassword() http.HandlerFunc {
 			server.error(writer, req, http.StatusInternalServerError, err)
 			return
 		}
+
 		//TODO: delete old tokens
 		server.respond(writer, req, http.StatusOK, user)
 	}
