@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	validation "github.com/go-ozzo/ozzo-validation"
-	"github.com/go-ozzo/ozzo-validation/is"
 	"github.com/pkg/errors"
 
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
@@ -60,7 +59,7 @@ func (userRepository *UserRepository) FindBy(columnName string, value interface{
 }
 
 func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64) error {
-	if err := validation.Validate(newEmail, validation.Required, is.Email); err != nil {
+	if err := validation.Validate(&newEmail, model.ValidationRulesEmail...); err != nil {
 		return err
 	}
 
@@ -92,7 +91,7 @@ func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64
 }
 
 func (userRepository *UserRepository) UpdatePassword(newPassword string, userId uint64) error {
-	if err := model.ValidatePassword(newPassword); err != nil {
+	if err := validation.Validate(&newPassword, model.ValidationRulesPassword...); err != nil {
 		return nil
 	}
 

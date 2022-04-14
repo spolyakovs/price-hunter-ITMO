@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TokenDetails struct {
+type TokensDetails struct {
 	AccessToken  string
 	RefreshToken string
 	AccessUuid   string
@@ -22,61 +22,64 @@ type TokenDetails struct {
 	RtExpires    int64
 }
 
-func CreateToken(userid uint64) (*TokenDetails, error) {
-	tokenDetails := &TokenDetails{}
-	tokenDetails.AtExpires = time.Now().Add(time.Minute * 15).Unix()
-	tokenDetails.AccessUuid = uuid.New().String()
+func CreateTokens(userid uint64) (*TokensDetails, error) {
+	tokensDetails := &TokensDetails{}
+	tokensDetails.AtExpires = time.Now().Add(time.Minute * 15).Unix()
+	tokensDetails.AccessUuid = uuid.New().String()
 
-	tokenDetails.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
-	tokenDetails.RefreshUuid = uuid.New().String()
+	tokensDetails.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
+	tokensDetails.RefreshUuid = uuid.New().String()
 
 	var err error
 	// Creating Access Token
 	accessTokenClaims := jwt.MapClaims{}
 	accessTokenClaims["authorized"] = true
-	accessTokenClaims["access_uuid"] = tokenDetails.AccessUuid
+	accessTokenClaims["uuid"] = tokensDetails.AccessUuid
 	accessTokenClaims["user_id"] = userid
-	accessTokenClaims["exp"] = tokenDetails.AtExpires
+	accessTokenClaims["exp"] = tokensDetails.AtExpires
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessTokenClaims)
-	tokenDetails.AccessToken, err = accessToken.SignedString([]byte(os.Getenv("ACCESS_SECRET")))
+	tokensDetails.AccessToken, err = accessToken.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 	if err != nil {
 		return nil, errors.Wrap(ErrTokenCreate, err.Error())
 	}
 
 	// Creating Refresh Token
 	refreshTokenClaims := jwt.MapClaims{}
-	refreshTokenClaims["refresh_uuid"] = tokenDetails.RefreshUuid
+	refreshTokenClaims["uuid"] = tokensDetails.RefreshUuid
 	refreshTokenClaims["user_id"] = userid
-	refreshTokenClaims["exp"] = tokenDetails.RtExpires
+	refreshTokenClaims["exp"] = tokensDetails.RtExpires
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshTokenClaims)
-	tokenDetails.RefreshToken, err = refreshToken.SignedString([]byte(os.Getenv("REFRESH_SECRET")))
+	tokensDetails.RefreshToken, err = refreshToken.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 	if err != nil {
 		return nil, errors.Wrap(ErrTokenCreate, err.Error())
 	}
 
-	accessTokenExpires := time.Unix(tokenDetails.AtExpires, 0) //converting Unix to UTC(to Time object)
-	refreshTokenExpires := time.Unix(tokenDetails.RtExpires, 0)
+	accessTokenExpires := time.Unix(tokensDetails.AtExpires, 0) //converting Unix to UTC(to Time object)
+	refreshTokenExpires := time.Unix(tokensDetails.RtExpires, 0)
 	now := time.Now()
 
-	accessErr := redisStore.Set(tokenDetails.AccessUuid, strconv.Itoa(int(userid)), accessTokenExpires.Sub(now)).Err()
+	accessErr := redisStore.Set(tokensDetails.AccessUuid, strconv.Itoa(int(userid)), accessTokenExpires.Sub(now)).Err()
 	if accessErr != nil {
 		return nil, errors.Wrap(ErrTokenSave, accessErr.Error())
 	}
-	refreshErr := redisStore.Set(tokenDetails.RefreshUuid, strconv.Itoa(int(userid)), refreshTokenExpires.Sub(now)).Err()
+	refreshErr := redisStore.Set(tokensDetails.RefreshUuid, strconv.Itoa(int(userid)), refreshTokenExpires.Sub(now)).Err()
 	if refreshErr != nil {
 		return nil, errors.Wrap(ErrTokenSave, refreshErr.Error())
 	}
 
-	return tokenDetails, nil
+	return tokensDetails, nil
 }
 
-func ExtractToken(r *http.Request) string {
+func ExtractToken(r *http.Request) (string, error) {
 	bearToken := r.Header.Get("Authorization")
+	if bearToken == "" {
+		return "", ErrTokenNotProvided
+	}
 	strArr := strings.Split(bearToken, " ")
 	if len(strArr) == 2 {
-		return strArr[1]
+		return strArr[1], nil
 	}
-	return ""
+	return "", ErrTokenWrongFormat
 }
 
 func verifyToken(tokenString string) (*jwt.Token, error) {
@@ -85,7 +88,7 @@ func verifyToken(tokenString string) (*jwt.Token, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrTokenSigningMethod
 		}
-		return []byte(os.Getenv("ACCESS_SECRET")), nil
+		return []byte(os.Getenv("TOKEN_SECRET")), nil
 	})
 	if err != nil {
 		return nil, errors.Wrap(ErrTokenParse, err.Error())
@@ -93,53 +96,37 @@ func verifyToken(tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
-func TokenValid(tokenString string) error {
+func IsValid(tokenString string) error {
 	token, err := verifyToken(tokenString)
 	if err != nil {
 		return err
 	}
 
-	if _, ok := token.Claims.(jwt.Claims); !ok && !token.Valid {
-		return ErrTokenValidation
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if ok && token.Valid {
+		uuid, ok := claims["uuid"].(string)
+		if !ok {
+			return errors.WithMessage(ErrTokenUUID, fmt.Sprintf("Claims: %+v", claims))
+		}
+
+		count, err := redisStore.Exists(uuid).Result()
+		if err != nil {
+			return errors.Wrap(ErrRedis, err.Error())
+		}
+		if count == 0 {
+			return ErrTokenDoesNotExist
+		}
 	}
 
 	return nil
 }
 
-type AccessDetails struct {
-	AccessUuid string
-	UserId     uint64
+type SingleTokenDetails struct {
+	Uuid   string
+	UserId uint64
 }
 
-type RefreshDetails struct {
-	RefreshUuid string
-	UserId      uint64
-}
-
-func ExtractAccessTokenMetadata(tokenString string) (*AccessDetails, error) {
-	token, err := verifyToken(tokenString)
-	if err != nil {
-		return nil, err
-	}
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if ok && token.Valid {
-		accessUuid, ok := claims["access_uuid"].(string)
-		if !ok {
-			return nil, errors.WithMessage(ErrTokenUUID, fmt.Sprintf("Claims: %+v", claims))
-		}
-		userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
-		if err != nil {
-			return nil, errors.Wrap(ErrUintParse, err.Error())
-		}
-		return &AccessDetails{
-			AccessUuid: accessUuid,
-			UserId:     userId,
-		}, nil
-	}
-	return nil, errors.WithMessage(ErrTokenClaims, fmt.Sprintf("Claims: %+v", token.Claims))
-}
-
-func ExtractRefreshTokenMetadata(tokenString string) (*RefreshDetails, error) {
+func ExtractTokenMetadata(tokenString string) (*SingleTokenDetails, error) {
 	token, err := verifyToken(tokenString)
 	if err != nil {
 		return nil, err
@@ -147,7 +134,7 @@ func ExtractRefreshTokenMetadata(tokenString string) (*RefreshDetails, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
-		refreshUuid, ok := claims["refresh_uuid"].(string)
+		uuid, ok := claims["uuid"].(string)
 		if !ok {
 			return nil, errors.WithMessage(ErrTokenUUID, fmt.Sprintf("Claims: %+v", claims))
 		}
@@ -157,9 +144,9 @@ func ExtractRefreshTokenMetadata(tokenString string) (*RefreshDetails, error) {
 			return nil, errors.Wrap(ErrUintParse, err.Error())
 		}
 
-		return &RefreshDetails{
-			RefreshUuid: refreshUuid,
-			UserId:      userId,
+		return &SingleTokenDetails{
+			Uuid:   uuid,
+			UserId: userId,
 		}, nil
 	}
 	return nil, errors.WithMessage(ErrTokenClaims, fmt.Sprintf("Claims: %+v", token.Claims))
@@ -167,10 +154,13 @@ func ExtractRefreshTokenMetadata(tokenString string) (*RefreshDetails, error) {
 
 // TODO: implement this into changeEmail and changePassword (don't forget about deleting tokens)
 
-func FetchAuth(authDetails *AccessDetails) (uint64, error) {
-	userid, err := redisStore.Get(authDetails.AccessUuid).Result()
+func FetchAuth(authDetails *SingleTokenDetails) (uint64, error) {
+	userid, err := redisStore.Get(authDetails.Uuid).Result()
 	if err != nil {
-		return 0, err
+		if err.Error() == ErrRedisNilMessage {
+			return 0, ErrTokenDoesNotExist
+		}
+		return 0, errors.Wrap(ErrRedis, err.Error())
 	}
 	userID, _ := strconv.ParseUint(userid, 10, 64)
 	return userID, nil

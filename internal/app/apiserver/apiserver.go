@@ -29,8 +29,7 @@ func Start(config *Config) error {
 		return storeErr
 	}
 
-	os.Setenv("ACCESS_SECRET", config.AccessSecret)
-	os.Setenv("REFRESH_SECRET", config.RefreshSecret)
+	os.Setenv("TOKEN_SECRET", config.TokenSecret)
 
 	redisErr := tokenUtils.SetupRedis()
 	if redisErr != nil {

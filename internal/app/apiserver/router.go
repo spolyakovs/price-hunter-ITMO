@@ -14,6 +14,7 @@ func (server *server) configureRouter() {
 	private := server.router.PathPrefix("/private").Subrouter()
 	private.Use(server.authenticateUser)
 	private.HandleFunc("/me", server.handleUsersMe()).Methods("GET")
+	private.HandleFunc("/delete_all_auth", server.handleUsersDeleteAllAuth()).Methods("POST")
 	private.HandleFunc("/change/email", server.handleUsersChangeEmail()).Methods("POST")
 	private.HandleFunc("/change/password", server.handleUsersChangePassword()).Methods("POST")
 

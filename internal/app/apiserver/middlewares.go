@@ -55,31 +55,42 @@ func (server *server) logRequest(next http.Handler) http.Handler {
 
 func (server *server) authenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
-		tokenString := tokenUtils.ExtractToken(req)
-		tokenData, tokenDataErr := tokenUtils.ExtractAccessTokenMetadata(tokenString)
-		if tokenDataErr != nil {
-			// TODO: change error
-			tokenDataErr = errors.Wrap(tokenDataErr, "Couldn't get token metadata")
-			server.log(tokenDataErr)
-			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
+		tokenString, tokenExtractErr := tokenUtils.ExtractToken(req)
+		if tokenExtractErr != nil {
+			server.log(tokenExtractErr)
+			switch errors.Cause(tokenExtractErr) {
+			case tokenUtils.ErrTokenNotProvided:
+				server.error(writer, req, http.StatusUnauthorized, tokenExtractErr)
+			case tokenUtils.ErrTokenWrongFormat:
+				server.error(writer, req, http.StatusBadRequest, tokenExtractErr)
+			}
+		}
+
+		if err := tokenUtils.IsValid(tokenString); err != nil {
+			server.log(errors.WithMessage(err, errTokenExpiredOrDeleted.Error()))
+			server.error(writer, req, http.StatusForbidden, errTokenExpiredOrDeleted)
 			return
 		}
+
+		tokenData, tokenDataErr := tokenUtils.ExtractTokenMetadata(tokenString)
+		if tokenDataErr != nil {
+			tokenDataErr = errors.Wrap(tokenDataErr, "Couldn't get token metadata")
+			server.log(errors.WithMessage(tokenDataErr, errTokenDamaged.Error()))
+			server.error(writer, req, http.StatusBadRequest, errTokenDamaged)
+			return
+		}
+
 		userId, userIdErr := tokenUtils.FetchAuth(tokenData)
 		if userIdErr != nil {
-			// TODO: change error
-			userIdErr = errors.Wrap(userIdErr, "Couldn't fetch auth")
-			server.log(userIdErr)
-			server.error(writer, req, http.StatusUnauthorized, userIdErr)
+			server.log(errors.Wrap(userIdErr, "Couldn't fetch auth"))
+			server.error(writer, req, http.StatusForbidden, errTokenExpiredOrDeleted)
 			return
 		}
 
 		user, err := server.store.Users().Find(userId)
 		if err != nil {
-			// TODO: probably this is how errors should be logged and sent
-			err = errors.Wrap(err, "Couldn't find user")
-			err = errors.Wrap(err, errNotAuthenticated.Error())
-			server.log(err)
-			server.error(writer, req, http.StatusUnauthorized, errNotAuthenticated)
+			server.log(errors.Wrap(err, "Couldn't find user"))
+			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return
 		}
 
@@ -92,6 +103,8 @@ type stackTracer interface {
 }
 
 func (server *server) log(err error) {
+	// TODO: create log file, log not only error but request as well
+	// TODO: think about different levels of logging (400+ status, 500+ status)
 	fmt.Printf("%v\n", err)
 }
 

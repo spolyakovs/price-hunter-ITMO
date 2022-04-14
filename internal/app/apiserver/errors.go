@@ -5,7 +5,8 @@ import "github.com/pkg/errors"
 var (
 	errWrongPathValue           = errors.New("Incorrect path value")
 	errAlreadyRegistered        = errors.New("This user already exists")
-	errUserDoesNotExist         = errors.New("This user does not exist")
 	errIncorrectEmailOrPassword = errors.New("Incorrect email or password")
-	errNotAuthenticated         = errors.New("Not authenticated")
+	errTokenExpiredOrDeleted    = errors.New("Token expired or has been deleted")
+	errTokenDamaged             = errors.New("Token has been damaged")
+	errSomethingWentWrong       = errors.New("Oops, something went wrong")
 )

@@ -17,11 +17,11 @@ type User struct {
 func (user *User) Validate() error {
 	if err := validation.ValidateStruct(
 		user,
-		validation.Field(&user.Username, validation.By(ValidateUsername)),
-		validation.Field(&user.Email, validation.By(ValidateEmail)),
-		validation.Field(&user.Password, validation.By(ValidatePassword)),
+		validation.Field(&user.Username, ValidationRulesUsername...),
+		validation.Field(&user.Email, ValidationRulesEmail...),
+		validation.Field(&user.Password, ValidationRulesPassword...),
 	); err != nil {
-		return err
+		return errors.Wrap(ErrValidationFailed, err.Error())
 	}
 
 	return nil

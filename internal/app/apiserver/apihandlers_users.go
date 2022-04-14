@@ -14,6 +14,7 @@ import (
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 )
 
+// TODO: add comments
 // TODO: get app info 1 at a time for steam at least
 // TODO: ONLY english letters in game name (debatable about description)
 // TODO: restrincting number of games in games_list request (and add offset param)
@@ -44,7 +45,7 @@ func (server *server) handleRegistration() http.HandlerFunc {
 			return
 		}
 
-		tokenDetails, tokenErr := tokenUtils.CreateToken(user.ID)
+		tokenDetails, tokenErr := tokenUtils.CreateTokens(user.ID)
 		if tokenErr != nil {
 			fmt.Printf("DEBUG: %s\n", tokenErr.Error())
 			server.error(writer, req, http.StatusInternalServerError, tokenErr)
@@ -80,7 +81,7 @@ func (server *server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		tokenDetails, tokenErr := tokenUtils.CreateToken(user.ID)
+		tokenDetails, tokenErr := tokenUtils.CreateTokens(user.ID)
 		if tokenErr != nil {
 			fmt.Printf("DEBUG: %s\n", tokenErr.Error())
 			server.error(writer, req, http.StatusInternalServerError, tokenErr)
@@ -98,25 +99,34 @@ func (server *server) handleLogin() http.HandlerFunc {
 
 func (server *server) handleLogout() http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		tokenString := tokenUtils.ExtractToken(req)
-		tokenData, tokenDataErr := tokenUtils.ExtractAccessTokenMetadata(tokenString)
+		tokenString, tokenExtractErr := tokenUtils.ExtractToken(req)
+		if tokenExtractErr != nil {
+			server.log(tokenExtractErr)
+			switch errors.Cause(tokenExtractErr) {
+			case tokenUtils.ErrTokenNotProvided:
+				server.error(writer, req, http.StatusUnauthorized, tokenExtractErr)
+			case tokenUtils.ErrTokenWrongFormat:
+				server.error(writer, req, http.StatusBadRequest, tokenExtractErr)
+			}
+		}
+
+		tokenData, tokenDataErr := tokenUtils.ExtractTokenMetadata(tokenString)
 		if tokenDataErr != nil {
 			validErr, ok := tokenDataErr.(*jwt.ValidationError)
 			if ok && validErr.Errors == jwt.ValidationErrorExpired {
 				server.respond(writer, req, http.StatusOK, nil)
 				return
 			}
-			// TODO: change error
-			fmt.Printf("DEBUG: %s\n", tokenDataErr.Error())
-			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
+
+			tokenDataErr = errors.Wrap(tokenDataErr, "Couldn't get token metadata")
+			server.log(errors.WithMessage(tokenDataErr, errTokenDamaged.Error()))
+			server.error(writer, req, http.StatusBadRequest, errTokenDamaged)
 			return
 		}
 
-		delErr := tokenUtils.DeleteAuth(tokenData.AccessUuid)
-		if delErr != nil {
-			// TODO: change error
-			fmt.Printf("DEBUG: %s\n", delErr.Error())
-			server.error(writer, req, http.StatusInternalServerError, delErr)
+		if err := tokenUtils.DeleteAuth(tokenData.Uuid); err != nil {
+			server.log(errors.Wrap(err, "Couldn't delete token"))
+			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return
 		}
 
@@ -136,25 +146,60 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 			return
 		}
 
-		tokenData, tokenDataErr := tokenUtils.ExtractRefreshTokenMetadata(requestStruct.RefreshToken)
-		if tokenDataErr != nil {
-			// TODO: change error
-			server.log(tokenDataErr)
-			server.error(writer, req, http.StatusUnauthorized, tokenDataErr)
+		// Extract, validate and delete access token
+		tokenString, tokenExtractErr := tokenUtils.ExtractToken(req)
+		if tokenExtractErr != nil {
+			server.log(tokenExtractErr)
+			switch errors.Cause(tokenExtractErr) {
+			case tokenUtils.ErrTokenNotProvided:
+				server.error(writer, req, http.StatusUnauthorized, tokenExtractErr)
+			case tokenUtils.ErrTokenWrongFormat:
+				server.error(writer, req, http.StatusBadRequest, tokenExtractErr)
+			}
+		}
+
+		authTokenData, authTokenDataErr := tokenUtils.ExtractTokenMetadata(tokenString)
+		if authTokenDataErr != nil {
+			validErr, ok := authTokenDataErr.(*jwt.ValidationError)
+			if !ok || validErr.Errors != jwt.ValidationErrorExpired {
+				authTokenDataErr = errors.Wrap(authTokenDataErr, "Couldn't get access token metadata")
+				server.log(errors.WithMessage(authTokenDataErr, errTokenDamaged.Error()))
+				server.error(writer, req, http.StatusBadRequest, errTokenDamaged)
+			}
+		}
+
+		if err := tokenUtils.DeleteAuth(authTokenData.Uuid); err != nil {
+			server.log(errors.Wrap(err, "Couldn't delete access token"))
+			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return
 		}
 
-		delErr := tokenUtils.DeleteAuth(tokenData.RefreshUuid)
-		if delErr != nil {
-			server.log(delErr)
-			server.error(writer, req, http.StatusInternalServerError, delErr)
+		// Extract, validate and delete refresh token
+		if err := tokenUtils.IsValid(requestStruct.RefreshToken); err != nil {
+			server.log(errors.WithMessage(err, errTokenExpiredOrDeleted.Error()))
+			server.error(writer, req, http.StatusForbidden, errTokenExpiredOrDeleted)
 			return
 		}
 
-		tokenDetails, createErr := tokenUtils.CreateToken(tokenData.UserId)
+		refreshTokenData, refreshTokenDataErr := tokenUtils.ExtractTokenMetadata(requestStruct.RefreshToken)
+		if refreshTokenDataErr != nil {
+			refreshTokenDataErr = errors.Wrap(refreshTokenDataErr, "Couldn't get token metadata")
+			server.log(errors.WithMessage(refreshTokenDataErr, errTokenDamaged.Error()))
+			server.error(writer, req, http.StatusBadRequest, errTokenDamaged)
+			return
+		}
+
+		if err := tokenUtils.DeleteAuth(refreshTokenData.Uuid); err != nil {
+			server.log(errors.Wrap(err, "Couldn't delete token"))
+			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+			return
+		}
+
+		// Creating new pair of tokens
+		tokenDetails, createErr := tokenUtils.CreateTokens(refreshTokenData.UserId)
 		if createErr != nil {
-			server.log(createErr)
-			server.error(writer, req, http.StatusInternalServerError, createErr)
+			server.log(errors.Wrap(createErr, "Couldn't create token"))
+			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return
 		}
 
@@ -169,11 +214,17 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 
 func (server *server) handleUsersMe() http.HandlerFunc {
 	return func(writer http.ResponseWriter, req *http.Request) {
-		if err := tokenUtils.DeleteAllAuths(req.Context().Value(ctxKeyUser).(*model.User).ID); err != nil {
-			server.log(err)
-			server.error(writer, req, http.StatusBadRequest, err)
-		}
 		server.respond(writer, req, http.StatusOK, req.Context().Value(ctxKeyUser).(*model.User))
+	}
+}
+
+func (server *server) handleUsersDeleteAllAuth() http.HandlerFunc {
+	return func(writer http.ResponseWriter, req *http.Request) {
+		if err := tokenUtils.DeleteAllAuths(req.Context().Value(ctxKeyUser).(*model.User).ID); err != nil {
+			server.log(errors.Wrap(err, "Couldn't delete all tokens for user"))
+			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+		}
+		server.respond(writer, req, http.StatusOK, nil)
 	}
 }
 
@@ -268,7 +319,7 @@ func (server *server) handleUsersGetByID() http.HandlerFunc {
 		user, err := server.store.Users().Find(id)
 		if err != nil {
 			fmt.Printf("DEBUG: %s\n", err.Error())
-			server.error(writer, req, http.StatusNotFound, errUserDoesNotExist)
+			server.error(writer, req, http.StatusNotFound, errSomethingWentWrong)
 			return
 		}
 
