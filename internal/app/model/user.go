@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -15,13 +17,17 @@ type User struct {
 }
 
 func (user *User) Validate() error {
+	modelName := "User"
+	methodName := "Validate"
+	errorMethodMessage := fmt.Sprintf(errModelMessage, modelName, methodName)
+
 	if err := validation.ValidateStruct(
 		user,
 		validation.Field(&user.Username, ValidationRulesUsername...),
 		validation.Field(&user.Email, ValidationRulesEmail...),
 		validation.Field(&user.Password, ValidationRulesPassword...),
 	); err != nil {
-		return errors.Wrap(ErrValidationFailed, err.Error())
+		return errors.Wrap(errors.WithMessage(ErrValidationFailed, err.Error()), errorMethodMessage)
 	}
 
 	return nil
@@ -29,7 +35,7 @@ func (user *User) Validate() error {
 
 func (user *User) BeforeCreate() error {
 	if len(user.Password) > 0 {
-		enc, err := encryptString(user.Password)
+		enc, err := EncryptString(user.Password)
 		if err != nil {
 			return err
 		}
@@ -49,7 +55,7 @@ func (user *User) ComparePassword(password string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(user.EncryptedPassword), []byte(password)) == nil
 }
 
-func encryptString(s string) (string, error) {
+func EncryptString(s string) (string, error) {
 	b, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.MinCost)
 	if err != nil {
 		return "", errors.Wrap(ErrEncryptionFailed, err.Error())

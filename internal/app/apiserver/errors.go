@@ -9,4 +9,5 @@ var (
 	errTokenExpiredOrDeleted    = errors.New("Token expired or has been deleted")
 	errTokenDamaged             = errors.New("Token has been damaged")
 	errSomethingWentWrong       = errors.New("Oops, something went wrong")
+	errUnknownRepository        = errors.New("Something wrong with repository request")
 )

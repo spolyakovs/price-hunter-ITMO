@@ -6,3 +6,7 @@ var (
 	ErrValidationFailed = errors.New("Wrong data format")
 	ErrEncryptionFailed = errors.New("Couldn't encrypt password")
 )
+
+const (
+	errModelMessage = "%s model %s error"
+)

@@ -3,21 +3,25 @@ package tokenUtils
 import "github.com/pkg/errors"
 
 var (
-	ErrTokenCreate        = errors.New("Couldn't create token")
-	ErrTokenSave          = errors.New("Couldn't save token to redis db")
-	ErrTokenSigningMethod = errors.New("Unexpected signing method")
-	ErrTokenWrongFormat   = errors.New("Wrong authentication header format")
-	ErrTokenNotProvided   = errors.New("You need to authenticate")
-	ErrTokenDoesNotExist  = errors.New("You need to authenticate")
-	ErrTokenValidation    = errors.New("Something wrong with token validation")
-	ErrTokenUUID          = errors.New("Something wrong with uuid")
-	ErrTokenClaims        = errors.New("Something wrong with claims")
-	ErrTokenParse         = errors.New("Couldn't parse token")
-	ErrTokenDelete        = errors.New("Couldn't delete token")
-	ErrUintParse          = errors.New("Couldn't parse uint")
-	ErrRedis              = errors.New("Something wrong in redis")
+	ErrTokenWrongFormat      = errors.New("Wrong authentication header format")
+	ErrTokenNotProvided      = errors.New("Token wasn't provided")
+	ErrTokenExpiredOrDeleted = errors.New("Token expired or has been deleted")
+	ErrTokenDamaged          = errors.New("Token has been damaged")
+	ErrInternal              = errors.New("Internal error")
 )
 
 const (
-	ErrRedisNilMessage = "redis: nil"
+	errTokenDeleteMessage        = "Couldn't delete token"
+	errTokenCreateMessage        = "Couldn't create token"
+	errTokenSaveMessage          = "Couldn't save token to redis db"
+	errTokenValidationMessage    = "Something wrong with token validation"
+	errTokenUUIDMessage          = "Something wrong with uuid"
+	errTokenClaimsMessage        = "Something wrong with claims"
+	errTokenParseMessage         = "Couldn't parse token"
+	errTokenSigningMethodMessage = "Unexpected signing method"
+	errTokenUtilsMessage         = "TokenUtils %s error"
+	errTokenExpiredMessage       = "Token is expired"
+	errUintParseMessage          = "Couldn't parse uint"
+	errRedisMessage              = "Something wrong in redis"
+	errRedisNilMessage           = "redis: nil"
 )
