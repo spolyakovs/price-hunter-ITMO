@@ -8,5 +8,5 @@ var (
 )
 
 const (
-	errModelMessage = "%s model %s error"
+	errModelMessageFormat = "%s model %s error"
 )

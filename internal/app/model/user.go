@@ -19,7 +19,7 @@ type User struct {
 func (user *User) Validate() error {
 	modelName := "User"
 	methodName := "Validate"
-	errorMethodMessage := fmt.Sprintf(errModelMessage, modelName, methodName)
+	errWrapMessage := fmt.Sprintf(errModelMessageFormat, modelName, methodName)
 
 	if err := validation.ValidateStruct(
 		user,
@@ -27,7 +27,7 @@ func (user *User) Validate() error {
 		validation.Field(&user.Email, ValidationRulesEmail...),
 		validation.Field(&user.Password, ValidationRulesPassword...),
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(ErrValidationFailed, err.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(ErrValidationFailed, err.Error()), errWrapMessage)
 	}
 
 	return nil

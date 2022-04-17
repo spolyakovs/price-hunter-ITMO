@@ -18,30 +18,14 @@ type UserRepository struct {
 func (userRepository *UserRepository) Create(user *model.User) error {
 	repositoryName := "User"
 	methodName := "Create"
-	errorMethodMessage := fmt.Sprintf(store.ErrStoreMessage, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
 
 	if err := user.Validate(); err != nil {
-		return errors.Wrap(err, errorMethodMessage)
+		return errors.Wrap(err, errWrapMessage)
 	}
 
 	if err := user.BeforeCreate(); err != nil {
-		return errors.Wrap(err, errorMethodMessage)
-	}
-
-	if _, err := userRepository.FindBy("username", user.Username); err == nil {
-		return errors.Wrap(store.ErrUserUsername, errorMethodMessage)
-	} else {
-		if errors.Cause(err) != store.ErrNotFound {
-			return errors.Wrap(err, errorMethodMessage)
-		}
-	}
-
-	if _, err := userRepository.FindBy("email", user.Email); err == nil {
-		return errors.Wrap(store.ErrUserEmail, fmt.Sprintf(store.ErrStoreMessage, repositoryName, methodName))
-	} else {
-		if errors.Cause(err) != store.ErrNotFound {
-			return errors.Wrap(err, errorMethodMessage)
-		}
+		return errors.Wrap(err, errWrapMessage)
 	}
 
 	createQuery := "INSERT INTO users (username, email, encrypted_password) VALUES ($1, $2, $3) RETURNING id;"
@@ -51,7 +35,7 @@ func (userRepository *UserRepository) Create(user *model.User) error {
 		createQuery,
 		user.Username, user.Email, user.EncryptedPassword,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -64,7 +48,7 @@ func (userRepository *UserRepository) Find(id uint64) (*model.User, error) {
 func (userRepository *UserRepository) FindBy(columnName string, value interface{}) (*model.User, error) {
 	repositoryName := "User"
 	methodName := "Find"
-	errorMethodMessage := fmt.Sprintf(store.ErrStoreMessage, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
 
 	user := &model.User{}
 	findQuery := fmt.Sprintf("SELECT * FROM users WHERE %s = $1 LIMIT 1;", columnName)
@@ -75,10 +59,10 @@ func (userRepository *UserRepository) FindBy(columnName string, value interface{
 		value,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.Wrap(store.ErrNotFound, errorMethodMessage)
+			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errorMethodMessage)
+		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return user, nil
@@ -87,10 +71,10 @@ func (userRepository *UserRepository) FindBy(columnName string, value interface{
 func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64) error {
 	repositoryName := "User"
 	methodName := "UpdateEmail"
-	errorMethodMessage := fmt.Sprintf(store.ErrStoreMessage, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
 
 	if err := validation.Validate(&newEmail, model.ValidationRulesEmail...); err != nil {
-		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errWrapMessage)
 	}
 
 	updateEmailQuery := "UPDATE users " +
@@ -104,17 +88,17 @@ func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64
 	)
 
 	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
 	}
 
 	count, countErr := countResult.RowsAffected()
 
 	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
-		return errors.Wrap(store.ErrNotFound, errorMethodMessage)
+		return errors.Wrap(store.ErrNotFound, errWrapMessage)
 	}
 
 	return nil
@@ -123,15 +107,15 @@ func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64
 func (userRepository *UserRepository) UpdatePassword(newPassword string, userId uint64) error {
 	repositoryName := "User"
 	methodName := "UpdatePassword"
-	errorMethodMessage := fmt.Sprintf(store.ErrStoreMessage, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
 
 	if err := validation.Validate(&newPassword, model.ValidationRulesPassword...); err != nil {
-		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errWrapMessage)
 	}
 
 	newPasswordEncrypted, encryptErr := model.EncryptString(newPassword)
 	if encryptErr != nil {
-		return errors.Wrap(encryptErr, fmt.Sprintf(store.ErrStoreMessage, repositoryName, methodName))
+		return errors.Wrap(encryptErr, errWrapMessage)
 	}
 
 	updatePasswordQuery := "UPDATE users " +
@@ -144,17 +128,17 @@ func (userRepository *UserRepository) UpdatePassword(newPassword string, userId 
 	)
 
 	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
 	}
 
 	count, countErr := countResult.RowsAffected()
 
 	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
-		return errors.Wrap(store.ErrNotFound, errorMethodMessage)
+		return errors.Wrap(store.ErrNotFound, errWrapMessage)
 	}
 
 	return nil
@@ -163,7 +147,7 @@ func (userRepository *UserRepository) UpdatePassword(newPassword string, userId 
 func (userRepository *UserRepository) Delete(id uint64) error {
 	repositoryName := "User"
 	methodName := "Delete"
-	errorMethodMessage := fmt.Sprintf(store.ErrStoreMessage, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
 
 	deleteQuery := "DELETE FROM users WHERE id = $1;"
 
@@ -173,17 +157,17 @@ func (userRepository *UserRepository) Delete(id uint64) error {
 	)
 
 	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
 	}
 
 	count, countErr := countResult.RowsAffected()
 
 	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errorMethodMessage)
+		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
-		return errors.Wrap(store.ErrNotFound, errorMethodMessage)
+		return errors.Wrap(store.ErrNotFound, errWrapMessage)
 	}
 
 	return nil

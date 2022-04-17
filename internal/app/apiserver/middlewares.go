@@ -57,47 +57,90 @@ func (server *server) logRequest(next http.Handler) http.Handler {
 
 func (server *server) authenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
+		methodName := "AuthenticateUser"
+		errWrapMessage := fmt.Sprintf(errMiddlewareMessageFormat, methodName)
+
 		tokenString, tokenExtractErr := tokenUtils.ExtractToken(req)
 		if tokenExtractErr != nil {
+			errWrapped := errors.Wrap(tokenExtractErr, errWrapMessage)
+
 			switch errors.Cause(tokenExtractErr) {
 			case tokenUtils.ErrTokenNotProvided:
-				server.error(writer, req, http.StatusUnauthorized, tokenExtractErr)
-				return
+				server.error(writer, req, http.StatusUnauthorized, errWrapped)
 			case tokenUtils.ErrTokenWrongFormat:
-				server.error(writer, req, http.StatusBadRequest, tokenExtractErr)
-				return
+				server.error(writer, req, http.StatusBadRequest, errWrapped)
+			default:
+				// Mostly TokenUtils.ErrInternal, probably something with Redis
+				server.log(errWrapped)
+				server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			}
-		}
 
-		if err := tokenUtils.IsValid(tokenString); err != nil {
-			err = errors.WithMessage(errTokenExpiredOrDeleted, err.Error())
-			server.error(writer, req, http.StatusForbidden, err)
 			return
 		}
 
+		// Already checks in tokenUtils.ExtractTokenMetadata
+
+		// if err := tokenUtils.IsValid(tokenString); err != nil {
+		// 	err = errors.Wrap(err, errWrapMessage)
+		//
+		// 	switch errors.Cause(err) {
+		// 	case tokenUtils.ErrTokenDamaged:
+		// 		server.error(writer, req, http.StatusBadRequest, err)
+		// 	case tokenUtils.ErrTokenExpiredOrDeleted:
+		// 		server.error(writer, req, http.StatusForbidden, err)
+		// 	default:
+		// 		// Mostly TokenUtils.ErrInternal, probably something with Redis
+		// 		server.log(err)
+		// 		server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+		// 	}
+		//
+		// 	return
+		// }
+
 		tokenDetails, tokenDetailsErr := tokenUtils.ExtractTokenMetadata(tokenString)
 		if tokenDetailsErr != nil {
-			tokenDetailsErr = errors.Wrap(tokenDetailsErr, "Couldn't get token metadata")
-			server.log(errors.WithMessage(tokenDetailsErr, errTokenDamaged.Error()))
-			server.error(writer, req, http.StatusBadRequest, errTokenDamaged)
+			errWrapped := errors.Wrap(tokenDetailsErr, errWrapMessage)
+
+			switch errors.Cause(tokenDetailsErr) {
+			case tokenUtils.ErrTokenDamaged:
+				server.error(writer, req, http.StatusBadRequest, errWrapped)
+			case tokenUtils.ErrTokenExpiredOrDeleted:
+				server.error(writer, req, http.StatusForbidden, errWrapped)
+			default:
+				// Mostly TokenUtils.ErrInternal, probably something with Redis
+				server.log(errWrapped)
+				server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+			}
 			return
 		}
 
 		userId, userIdErr := tokenUtils.FetchAuth(tokenDetails)
 		if userIdErr != nil {
-			server.log(errors.Wrap(userIdErr, "Couldn't fetch auth"))
-			server.error(writer, req, http.StatusForbidden, errTokenExpiredOrDeleted)
-			return
+			errWrapped := errors.Wrap(userIdErr, errWrapMessage)
+
+			switch errors.Cause(userIdErr) {
+			case tokenUtils.ErrTokenExpiredOrDeleted:
+				server.error(writer, req, http.StatusForbidden, errWrapped)
+			default:
+				// Mostly TokenUtils.ErrInternal, probably something with Redis
+				server.log(errWrapped)
+				server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+				return
+			}
 		}
 
-		user, err := server.store.Users().Find(userId)
-		if err != nil {
-			server.log(errors.Wrap(err, "Couldn't find user"))
+		user, userErr := server.store.Users().Find(userId)
+		if userErr != nil {
+			errWrapped := errors.Wrap(userErr, errWrapMessage)
+
+			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+
 			return
 		}
 
 		next.ServeHTTP(writer, req.WithContext(context.WithValue(req.Context(), ctxKeyUser, user)))
+
 	})
 }
 
