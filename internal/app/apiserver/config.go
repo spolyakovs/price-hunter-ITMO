@@ -1,10 +1,15 @@
 package apiserver
 
 type Config struct {
-	BindAddr    string `toml:"bind_addr"`
-	LogLevel    string `toml:"log_level"`
-	DatabaseURL string `toml:"database_url"`
-	TokenSecret string `toml:"token_secret"`
+	BindAddr         string `toml:"BIND_ADDR"`
+	LogLevel         string `toml:"LOG_LEVEL"`
+	DatabaseHost     string `toml:"DATABASE_HOST"`
+	DatabaseDBName   string `toml:"DATABASE_DB"`
+	DatabaseUser     string `toml:"DATABASE_USER"`
+	DatabasePassword string `toml:"DATABASE_PASSWORD"`
+	DatabaseSSLMode  string `toml:"DATABASE_SSLMODE"`
+	RedisAddr        string `toml:"REDIS_ADDR"`
+	TokenSecret      string `toml:"TOKEN_SECRET"`
 }
 
 func NewConfig() *Config {

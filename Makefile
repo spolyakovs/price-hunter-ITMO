@@ -1,7 +1,8 @@
+CONFIG_PATH?=configs/local.toml
+
 .PHONY: build
 build:
 	go build -v ./cmd/apiserver
-	sudo systemctl restart redis-server.service
 
 .PHONY: test
 test:
@@ -11,6 +12,6 @@ test:
 .PHONY: start
 start:
 	make build
-	./apiserver
+	./apiserver -config-path=$(CONFIG_PATH)
 
 .DEFAULT_GOAL := start

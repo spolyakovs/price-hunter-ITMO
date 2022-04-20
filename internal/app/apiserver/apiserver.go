@@ -1,22 +1,24 @@
 package apiserver
 
 import (
+	"fmt"
 	"net/http"
 	"os"
-
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 )
+
+// Migrate from wrapping errors to logging (Lexa vk)
 
 func Start(config *Config) error {
 	startLogger := logrus.New()
 
 	startLogger.Info("Creating database")
-	db, dbErr := newDB(config.DatabaseURL)
+	db, dbErr := newDB(*config)
 	if dbErr != nil {
 		return dbErr
 	}
@@ -31,7 +33,7 @@ func Start(config *Config) error {
 
 	os.Setenv("TOKEN_SECRET", config.TokenSecret)
 
-	redisErr := tokenUtils.SetupRedis()
+	redisErr := tokenUtils.SetupRedis(config.RedisAddr)
 	if redisErr != nil {
 		return redisErr
 	}
@@ -42,7 +44,9 @@ func Start(config *Config) error {
 	return http.ListenAndServe(config.BindAddr, srv)
 }
 
-func newDB(dbURL string) (*sqlx.DB, error) {
+func newDB(config Config) (*sqlx.DB, error) {
+	dbURL := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=%s",
+		config.DatabaseHost, config.DatabaseDBName, config.DatabaseUser, config.DatabasePassword, config.DatabaseSSLMode)
 	db, err := sqlx.Open("postgres", dbURL)
 	if err != nil {
 		return nil, err

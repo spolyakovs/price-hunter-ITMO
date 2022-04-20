@@ -14,7 +14,8 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-configs/
+configs/*
+!configs/example.toml
 
 apiserver
 !*apiserver/
@@ -24,3 +25,5 @@ apiserver
 dump.rdb
 
 go.sum
+
+.env
