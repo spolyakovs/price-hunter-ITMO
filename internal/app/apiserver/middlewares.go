@@ -14,8 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// TODO: fix errors in middlewares and handlers like in tokenUtils, model.User and sqlstore.UserRepository
-
 func (server *server) setRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, req *http.Request) {
 		id := uuid.New().String()
@@ -149,8 +147,6 @@ type stackTracer interface {
 }
 
 func (server *server) log(err error) {
-	// TODO: create log file, log not only error but request as well
-	// TODO: think about different levels of logging (400+ status, 500+ status)
 	fmt.Printf("%v\n", err)
 }
 

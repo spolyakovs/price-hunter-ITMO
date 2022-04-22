@@ -22,8 +22,6 @@ type TokenPairDetails struct {
 	RtExpires    int64
 }
 
-// TODO: refactor errors like here (errWrapped)
-
 func CreateTokens(userid uint64) (*TokenPairDetails, error) {
 	methodName := "CreateTokens"
 	errWrapMessage := fmt.Sprintf(errTokenUtilsMessageFormat, methodName)

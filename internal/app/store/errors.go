@@ -8,5 +8,6 @@ var (
 )
 
 const (
-	ErrStoreMessageFormat = "%s repository %s error"
+	ErrRepositoryMessageFormat = "%s repository %s error"
+	ErrCreateTablesMessageFormat = "Creating %s table error"
 )

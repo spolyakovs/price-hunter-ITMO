@@ -21,13 +21,9 @@ var (
 )
 
 type Store struct {
-	db                           *sqlx.DB
-	userRepository               *UserRepository
-	teamRepository               *TeamRepository
-	driverRepository             *DriverRepository
-	raceRepository               *RaceRepository
-	teamDriverContractRepository *TeamDriverContractRepository
-	raceResultRepository         *RaceResultRepository
+	db                  *sqlx.DB
+	userRepository      *UserRepository
+	publisherRepository *PublisherRepository
 }
 
 func New(db *sqlx.DB) (*Store, error) {
@@ -63,62 +59,14 @@ func (st *Store) Users() store.UserRepository {
 	return st.userRepository
 }
 
-func (st *Store) Teams() store.TeamRepository {
-	if st.teamRepository != nil {
-		return st.teamRepository
+func (st *Store) Publishers() store.PublisherRepository {
+	if st.publisherRepository != nil {
+		return st.publisherRepository
 	}
 
-	st.teamRepository = &TeamRepository{
+	st.publisherRepository = &PublisherRepository{
 		store: st,
 	}
 
-	return st.teamRepository
-}
-
-func (st *Store) Drivers() store.DriverRepository {
-	if st.driverRepository != nil {
-		return st.driverRepository
-	}
-
-	st.driverRepository = &DriverRepository{
-		store: st,
-	}
-
-	return st.driverRepository
-}
-
-func (st *Store) Races() store.RaceRepository {
-	if st.raceRepository != nil {
-		return st.raceRepository
-	}
-
-	st.raceRepository = &RaceRepository{
-		store: st,
-	}
-
-	return st.raceRepository
-}
-
-func (st *Store) TeamDriverContracts() store.TeamDriverContractRepository {
-	if st.teamDriverContractRepository != nil {
-		return st.teamDriverContractRepository
-	}
-
-	st.teamDriverContractRepository = &TeamDriverContractRepository{
-		store: st,
-	}
-
-	return st.teamDriverContractRepository
-}
-
-func (st *Store) RaceResults() store.RaceResultRepository {
-	if st.raceResultRepository != nil {
-		return st.raceResultRepository
-	}
-
-	st.raceResultRepository = &RaceResultRepository{
-		store: st,
-	}
-
-	return st.raceResultRepository
+	return st.publisherRepository
 }

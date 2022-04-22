@@ -18,7 +18,7 @@ type UserRepository struct {
 func (userRepository *UserRepository) Create(user *model.User) error {
 	repositoryName := "User"
 	methodName := "Create"
-	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	if err := user.Validate(); err != nil {
 		return errors.Wrap(err, errWrapMessage)
@@ -48,7 +48,7 @@ func (userRepository *UserRepository) Find(id uint64) (*model.User, error) {
 func (userRepository *UserRepository) FindBy(columnName string, value interface{}) (*model.User, error) {
 	repositoryName := "User"
 	methodName := "Find"
-	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	user := &model.User{}
 	findQuery := fmt.Sprintf("SELECT * FROM users WHERE %s = $1 LIMIT 1;", columnName)
@@ -71,15 +71,15 @@ func (userRepository *UserRepository) FindBy(columnName string, value interface{
 func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64) error {
 	repositoryName := "User"
 	methodName := "UpdateEmail"
-	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	if err := validation.Validate(&newEmail, model.ValidationRulesEmail...); err != nil {
 		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errWrapMessage)
 	}
 
 	updateEmailQuery := "UPDATE users " +
-		`SET email = $1 ` +
-		`WHERE id = $2;`
+		"SET email = $1 " +
+		"WHERE id = $2;"
 
 	countResult, countResultErr := userRepository.store.db.Exec(
 		updateEmailQuery,
@@ -107,7 +107,7 @@ func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64
 func (userRepository *UserRepository) UpdatePassword(newPassword string, userId uint64) error {
 	repositoryName := "User"
 	methodName := "UpdatePassword"
-	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	if err := validation.Validate(&newPassword, model.ValidationRulesPassword...); err != nil {
 		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errWrapMessage)
@@ -119,8 +119,8 @@ func (userRepository *UserRepository) UpdatePassword(newPassword string, userId 
 	}
 
 	updatePasswordQuery := "UPDATE users " +
-		`SET encrypted_password = $1 ` +
-		`WHERE id = $2;`
+		"SET encrypted_password = $1 " +
+		"WHERE id = $2;"
 	countResult, countResultErr := userRepository.store.db.Exec(
 		updatePasswordQuery,
 		newPasswordEncrypted,
@@ -147,7 +147,7 @@ func (userRepository *UserRepository) UpdatePassword(newPassword string, userId 
 func (userRepository *UserRepository) Delete(id uint64) error {
 	repositoryName := "User"
 	methodName := "Delete"
-	errWrapMessage := fmt.Sprintf(store.ErrStoreMessageFormat, repositoryName, methodName)
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	deleteQuery := "DELETE FROM users WHERE id = $1;"
 

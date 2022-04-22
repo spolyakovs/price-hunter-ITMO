@@ -1,46 +1,77 @@
 package sqlstore
 
-import "github.com/jmoiron/sqlx"
+import (
+	"fmt"
 
-func (store *Store) createTables() error {
-	tx, err := store.db.Beginx()
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
+)
+
+func (s *Store) createTables() error {
+	errWrapMessage := "Creating tables error"
+
+	tx, err := s.db.Beginx()
 	if err != nil {
-		return err
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	if err := createTableUsers(tx); err != nil {
-		return err
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
 	}
 
-	if err := createTableTeams(tx); err != nil {
-		return err
+	if err := createTablePublishers(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
 	}
 
-	if err := createTableDrivers(tx); err != nil {
-		return err
+	if err := createTableGames(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
 	}
 
-	if err := createTableRaces(tx); err != nil {
-		return err
+	if err := createTableTags(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
 	}
 
-	if err := createTableTeamDriverContracts(tx); err != nil {
-		return err
+	if err := createTableMarkets(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
 	}
 
-	if err := createTableRaceResults(tx); err != nil {
-		return err
+	if err := createTableUserGameFavourites(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
+	}
+
+	if err := createTableGameTags(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
+	}
+
+	if err := createTableGameMarketPrices(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
 	}
 
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
-		return err
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	return nil
 }
 
 func createTableUsers(tx *sqlx.Tx) error {
+	tableName := "Users"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
+
 	createTableUsersQuery := "CREATE TABLE IF NOT EXISTS users (" +
 		"id bigserial NOT NULL PRIMARY KEY," +
 		"username varchar NOT NULL UNIQUE," +
@@ -48,78 +79,137 @@ func createTableUsers(tx *sqlx.Tx) error {
 		"encrypted_password varchar NOT NULL );"
 
 	if _, err := tx.Exec(createTableUsersQuery); err != nil {
-		return err
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	return nil
 }
 
-func createTableTeams(tx *sqlx.Tx) error {
-	createTableTeamsQuery := "CREATE TABLE IF NOT EXISTS teams (" +
-		"id bigserial NOT NULL PRIMARY KEY," +
-		"name varchar NOT NULL UNIQUE," +
-		"engine_manufacturer varchar NOT NULL );"
+func createTablePublishers(tx *sqlx.Tx) error {
+	tableName := "Publishers"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
-	if _, err := tx.Exec(createTableTeamsQuery); err != nil {
-		return err
+	createTablePublishersQuery := "CREATE TABLE IF NOT EXISTS publishers (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"name varchar NOT NULL );"
+
+	if _, err := tx.Exec(createTablePublishersQuery); err != nil {
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	return nil
 }
 
-func createTableDrivers(tx *sqlx.Tx) error {
-	createTableDriversQuery := "CREATE TABLE IF NOT EXISTS drivers (" +
-		"id bigserial NOT NULL PRIMARY KEY," +
-		"first_name varchar NOT NULL," +
-		"last_name varchar NOT NULL," +
-		"birth_date date NOT NULL );"
+func createTableGames(tx *sqlx.Tx) error {
+	tableName := "Users"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
-	if _, err := tx.Exec(createTableDriversQuery); err != nil {
-		return err
+	createTableGamesQuery := "CREATE TABLE IF NOT EXISTS games (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"header_image_url varchar NOT NULL," +
+		"name varchar NOT NULL," +
+		"description varchar NOT NULL," +
+		"publisher_id bigserial NOT NULL REFERENCES publishers (id) ON DELETE CASCADE );"
+
+	if _, err := tx.Exec(createTableGamesQuery); err != nil {
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	return nil
 }
 
-func createTableRaces(tx *sqlx.Tx) error {
-	createTableRacesQuery := "CREATE TABLE IF NOT EXISTS races (" +
-		"id bigserial NOT NULL PRIMARY KEY," +
-		"name varchar NOT NULL UNIQUE," +
-		"location varchar NOT NULL," +
-		"date date NOT NULL );"
+func createTableTags(tx *sqlx.Tx) error {
+	tableName := "Users"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
-	if _, err := tx.Exec(createTableRacesQuery); err != nil {
-		return err
+	createTableTagsQuery := "CREATE TABLE IF NOT EXISTS tags (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"name varchar NOT NULL );"
+
+	if _, err := tx.Exec(createTableTagsQuery); err != nil {
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	return nil
 }
 
-func createTableTeamDriverContracts(tx *sqlx.Tx) error {
-	createTableTeamDriverContractsQuery := "CREATE TABLE IF NOT EXISTS team_driver_contracts (" +
-		"id bigserial NOT NULL PRIMARY KEY," +
-		"from_date date NOT NULL," +
-		"to_date date," +
-		"team_id bigserial NOT NULL REFERENCES teams (id) ON DELETE CASCADE," +
-		"driver_id bigserial NOT NULL REFERENCES drivers (id) ON DELETE CASCADE );"
+func createTableMarkets(tx *sqlx.Tx) error {
+	tableName := "Users"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
-	if _, err := tx.Exec(createTableTeamDriverContractsQuery); err != nil {
-		return err
+	createTableMarketsQuery := "CREATE TABLE IF NOT EXISTS markets (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"name varchar NOT NULL );"
+
+	if _, err := tx.Exec(createTableMarketsQuery); err != nil {
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	return nil
 }
 
-func createTableRaceResults(tx *sqlx.Tx) error {
-	createTableRaceResultsQuery := "CREATE TABLE IF NOT EXISTS race_results (" +
-		"id bigserial NOT NULL PRIMARY KEY," +
-		"place integer NOT NULL," +
-		"points integer NOT NULL DEFAULT 0," +
-		"race_id bigserial NOT NULL REFERENCES races (id) ON DELETE CASCADE," +
-		"driver_id bigserial NOT NULL REFERENCES drivers (id) ON DELETE CASCADE );"
+func createTableUserGameFavourites(tx *sqlx.Tx) error {
+	tableName := "Users"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
-	if _, err := tx.Exec(createTableRaceResultsQuery); err != nil {
-		return err
+	createTableGameFavouritesQuery := "CREATE TABLE IF NOT EXISTS user_game_favourites (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"user_id bigserial NOT NULL REFERENCES users (id) ON DELETE CASCADE," +
+		"game_id bigserial NOT NULL REFERENCES games (id) ON DELETE CASCADE );"
+
+	if _, err := tx.Exec(createTableGameFavouritesQuery); err != nil {
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
+	}
+
+	return nil
+}
+
+func createTableGameTags(tx *sqlx.Tx) error {
+	tableName := "Users"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
+
+	createTableGameTagsQuery := "CREATE TABLE IF NOT EXISTS game_tags (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"game_id bigserial NOT NULL REFERENCES games (id) ON DELETE CASCADE," +
+		"tag_id bigserial NOT NULL REFERENCES tags (id) ON DELETE CASCADE );"
+
+	if _, err := tx.Exec(createTableGameTagsQuery); err != nil {
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
+	}
+
+	return nil
+}
+
+func createTableGameMarketPrices(tx *sqlx.Tx) error {
+	tableName := "Users"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
+
+	createTableGameMarketPricesQuery := "CREATE TABLE IF NOT EXISTS game_market_prices (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"initial_value_formatted varchar NOT NULL," +
+		"final_value_formatted varchar NOT NULL," +
+		"discount_percent integer NOT NULL," +
+		"game_id bigserial NOT NULL REFERENCES games (id) ON DELETE CASCADE," +
+		"market_id bigserial NOT NULL REFERENCES markets (id) ON DELETE CASCADE );"
+
+	if _, err := tx.Exec(createTableGameMarketPricesQuery); err != nil {
+		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
 	}
 
 	return nil
