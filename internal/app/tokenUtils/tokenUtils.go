@@ -44,7 +44,7 @@ func CreateTokens(userid uint64) (*TokenPairDetails, error) {
 	tokensDetails.AccessToken, err = accessToken.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 	if err != nil {
 		errWrapped := errors.Wrap(ErrInternal, errTokenCreateMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -58,7 +58,7 @@ func CreateTokens(userid uint64) (*TokenPairDetails, error) {
 	tokensDetails.RefreshToken, err = refreshToken.SignedString([]byte(os.Getenv("TOKEN_SECRET")))
 	if err != nil {
 		errWrapped := errors.Wrap(ErrInternal, errTokenCreateMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -70,7 +70,7 @@ func CreateTokens(userid uint64) (*TokenPairDetails, error) {
 	// Saving Access token
 	if err := redisStore.Set(tokensDetails.AccessUuid, strconv.Itoa(int(userid)), accessTokenExpires.Sub(now)).Err(); err != nil {
 		errWrapped := errors.Wrap(ErrInternal, errTokenSaveMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -78,7 +78,7 @@ func CreateTokens(userid uint64) (*TokenPairDetails, error) {
 	// Saving Refresh token
 	if err := redisStore.Set(tokensDetails.RefreshUuid, strconv.Itoa(int(userid)), refreshTokenExpires.Sub(now)).Err(); err != nil {
 		errWrapped := errors.Wrap(ErrInternal, errTokenSaveMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -123,7 +123,7 @@ func verifyToken(tokenString string) (*jwt.Token, error) {
 			return nil, errWrapped
 		}
 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenParseMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -144,7 +144,7 @@ func IsValid(tokenString string) error {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenClaimsMessage)
-		errWrapped = errors.WithMessage(errWrapped, fmt.Sprintf("Claims: %+v", token.Claims))
+		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", token.Claims))
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -158,7 +158,7 @@ func IsValid(tokenString string) error {
 	uuid, ok := claims["uuid"].(string)
 	if !ok {
 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenUUIDMessage)
-		errWrapped = errors.WithMessage(errWrapped, fmt.Sprintf("Claims: %+v", claims))
+		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", claims))
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -166,7 +166,7 @@ func IsValid(tokenString string) error {
 	count, err := redisStore.Exists(uuid).Result()
 	if err != nil {
 		errWrapped := errors.Wrap(ErrInternal, errRedisMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -197,7 +197,7 @@ func ExtractTokenMetadata(tokenString string) (*TokenDetails, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenClaimsMessage)
-		errWrapped = errors.WithMessage(errWrapped, fmt.Sprintf("Claims: %+v", token.Claims))
+		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", token.Claims))
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -211,7 +211,7 @@ func ExtractTokenMetadata(tokenString string) (*TokenDetails, error) {
 	uuid, ok := claims["uuid"].(string)
 	if !ok {
 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenUUIDMessage)
-		errWrapped = errors.WithMessage(errWrapped, fmt.Sprintf("Claims: %+v", claims))
+		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", claims))
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -219,7 +219,7 @@ func ExtractTokenMetadata(tokenString string) (*TokenDetails, error) {
 	count, err := redisStore.Exists(uuid).Result()
 	if err != nil {
 		errWrapped := errors.Wrap(ErrInternal, errRedisMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -232,7 +232,7 @@ func ExtractTokenMetadata(tokenString string) (*TokenDetails, error) {
 	userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims["user_id"]), 10, 64)
 	if err != nil {
 		errWrapped := errors.Wrap(ErrTokenDamaged, errUintParseMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return nil, errWrapped
 	}
@@ -254,7 +254,7 @@ func FetchAuth(authDetails *TokenDetails) (uint64, error) {
 			return 0, errWrapped
 		}
 		errWrapped := errors.Wrap(ErrInternal, errRedisMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return 0, errWrapped
 	}
@@ -269,7 +269,7 @@ func DeleteAuth(uuid string) error {
 	err := redisStore.Del(uuid).Err()
 	if err != nil {
 		errWrapped := errors.Wrap(ErrInternal, errTokenDeleteMessage)
-		errWrapped = errors.WithMessage(errWrapped, err.Error())
+		errWrapped = errors.Wrap(errWrapped, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -287,7 +287,7 @@ func DeleteAllAuths(userid uint64) error {
 		keys, cursor, err = redisStore.Scan(cursor, "*", 0).Result()
 		if err != nil {
 			errWrapped := errors.Wrap(ErrInternal, errRedisMessage)
-			errWrapped = errors.WithMessage(errWrapped, err.Error())
+			errWrapped = errors.Wrap(errWrapped, err.Error())
 			errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 			return errWrapped
 		}
@@ -296,14 +296,14 @@ func DeleteAllAuths(userid uint64) error {
 			result, err := redisStore.Get(key).Result()
 			if err != nil {
 				errWrapped := errors.Wrap(ErrInternal, errRedisMessage)
-				errWrapped = errors.WithMessage(errWrapped, err.Error())
+				errWrapped = errors.Wrap(errWrapped, err.Error())
 				errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 				return errWrapped
 			}
 
 			if result == strconv.Itoa(int(userid)) {
-				if delErr := DeleteAuth(key); delErr != nil {
-					errWrapped := errors.Wrap(delErr, errWrapMessage)
+				if err := DeleteAuth(key); err != nil {
+					errWrapped := errors.Wrap(err, errWrapMessage)
 					return errWrapped
 				}
 			}

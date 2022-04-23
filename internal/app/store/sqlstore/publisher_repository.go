@@ -26,7 +26,7 @@ func (publisherRepository *PublisherRepository) Create(publisher *model.Publishe
 		createQuery,
 		publisher.Name,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -53,7 +53,7 @@ func (publisherRepository *PublisherRepository) FindBy(columnName string, value 
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return publisher, nil
@@ -68,19 +68,19 @@ func (publisherRepository *PublisherRepository) Update(newPublisher *model.Publi
 		"SET name = :name " +
 		"WHERE id = :id;"
 
-	countResult, countResultErr := publisherRepository.store.db.NamedExec(
+	countResult, err := publisherRepository.store.db.NamedExec(
 		updateQuery,
 		newPublisher,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -97,19 +97,19 @@ func (publisherRepository *PublisherRepository) Delete(id uint64) error {
 
 	deleteQuery := "DELETE FROM publishers WHERE id = $1;"
 
-	countResult, countResultErr := publisherRepository.store.db.Exec(
+	countResult, err := publisherRepository.store.db.Exec(
 		deleteQuery,
 		id,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {

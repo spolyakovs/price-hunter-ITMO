@@ -90,20 +90,7 @@ func (server *server) handleRegistration() http.HandlerFunc {
 			return
 		}
 
-		tokenDetails, tokenDetailsErr := tokenUtils.CreateTokens(user.ID)
-		if tokenDetailsErr != nil {
-			errWrapped := errors.Wrap(tokenDetailsErr, errWrapMessage)
-			server.log(errWrapped)
-			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
-			return
-		}
-
-		tokens := map[string]string{
-			"access_token":  tokenDetails.AccessToken,
-			"refresh_token": tokenDetails.RefreshToken,
-		}
-
-		server.respond(writer, req, http.StatusOK, tokens)
+		server.respond(writer, req, http.StatusOK, nil)
 	}
 }
 
@@ -125,11 +112,11 @@ func (server *server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		user, userErr := server.store.Users().FindBy("username", requestStruct.Username)
-		if userErr != nil {
-			errWrapped := errors.Wrap(userErr, errWrapMessage)
+		user, err := server.store.Users().FindBy("username", requestStruct.Username)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(userErr) {
+			switch errors.Cause(err) {
 			case store.ErrNotFound:
 				server.respond(writer, req, http.StatusOK, map[string]string{"error": errWrongUsernameOrPasswordMessage})
 			default:
@@ -145,9 +132,9 @@ func (server *server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		tokenDetails, tokenDetailsErr := tokenUtils.CreateTokens(user.ID)
-		if tokenDetailsErr != nil {
-			errWrapped := errors.Wrap(tokenDetailsErr, errWrapMessage)
+		tokenDetails, err := tokenUtils.CreateTokens(user.ID)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return
@@ -167,11 +154,11 @@ func (server *server) handleLogout() http.HandlerFunc {
 		methodName := "Logout"
 		errWrapMessage := fmt.Sprintf(errHandlerMessageFormat, methodName)
 
-		tokenString, tokenExtractErr := tokenUtils.ExtractToken(req)
-		if tokenExtractErr != nil {
-			errWrapped := errors.Wrap(tokenExtractErr, errWrapMessage)
+		tokenString, err := tokenUtils.ExtractToken(req)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(tokenExtractErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenNotProvided:
 				server.error(writer, req, http.StatusUnauthorized, errWrapped)
 			case tokenUtils.ErrTokenWrongFormat:
@@ -185,11 +172,11 @@ func (server *server) handleLogout() http.HandlerFunc {
 			return
 		}
 
-		tokenDetails, tokenDetailsErr := tokenUtils.ExtractTokenMetadata(tokenString)
-		if tokenDetailsErr != nil {
-			errWrapped := errors.Wrap(tokenDetailsErr, errWrapMessage)
+		tokenDetails, err := tokenUtils.ExtractTokenMetadata(tokenString)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(tokenDetailsErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 			case tokenUtils.ErrTokenExpiredOrDeleted:
@@ -231,11 +218,11 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 		}
 
 		// Extract, validate and delete access token
-		tokenString, tokenExtractErr := tokenUtils.ExtractToken(req)
-		if tokenExtractErr != nil {
-			errWrapped := errors.Wrap(tokenExtractErr, errWrapMessage)
+		tokenString, err := tokenUtils.ExtractToken(req)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(tokenExtractErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenNotProvided:
 				server.error(writer, req, http.StatusUnauthorized, errWrapped)
 			case tokenUtils.ErrTokenWrongFormat:
@@ -250,11 +237,11 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 		}
 
 		// Access token must be valid, but expired
-		accessTokenDetails, accessTokenDetailsErr := tokenUtils.ExtractTokenMetadata(tokenString)
-		if accessTokenDetailsErr != nil {
-			errWrapped := errors.Wrap(accessTokenDetailsErr, errWrapMessage)
+		accessTokenDetails, err := tokenUtils.ExtractTokenMetadata(tokenString)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(accessTokenDetailsErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 				return
@@ -275,11 +262,11 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 			}
 		}
 
-		refreshTokenDetails, refreshTokenDetailsErr := tokenUtils.ExtractTokenMetadata(requestStruct.RefreshToken)
-		if refreshTokenDetailsErr != nil {
-			errWrapped := errors.Wrap(refreshTokenDetailsErr, errWrapMessage)
+		refreshTokenDetails, err := tokenUtils.ExtractTokenMetadata(requestStruct.RefreshToken)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(refreshTokenDetailsErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 			case tokenUtils.ErrTokenExpiredOrDeleted:
@@ -301,9 +288,9 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 		}
 
 		// Creating new pair of tokens
-		tokenDetails, createErr := tokenUtils.CreateTokens(refreshTokenDetails.UserId)
-		if createErr != nil {
-			errWrapped := errors.Wrap(createErr, errWrapMessage)
+		tokenDetails, err := tokenUtils.CreateTokens(refreshTokenDetails.UserId)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return
@@ -341,6 +328,18 @@ func (server *server) handleUsersChangeEmail() http.HandlerFunc {
 			return
 		}
 
+		if _, err := server.store.Users().FindBy("email", requestStruct.NewEmail); err == nil {
+			server.respond(writer, req, http.StatusOK, map[string]string{"error": errUserExistsEmailMessage})
+			return
+		} else {
+			if errors.Cause(err) != store.ErrNotFound {
+				errWrapped := errors.Wrap(err, errWrapMessage)
+				server.log(errWrapped)
+				server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+				return
+			}
+		}
+
 		user := req.Context().Value(ctxKeyUser).(*model.User)
 
 		if err := server.store.Users().UpdateEmail(requestStruct.NewEmail, user.ID); err != nil {
@@ -365,9 +364,9 @@ func (server *server) handleUsersChangeEmail() http.HandlerFunc {
 		}
 
 		// Creating new pair of tokens
-		tokenDetails, createErr := tokenUtils.CreateTokens(user.ID)
-		if createErr != nil {
-			errWrapped := errors.Wrap(createErr, errWrapMessage)
+		tokenDetails, err := tokenUtils.CreateTokens(user.ID)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return
@@ -427,9 +426,9 @@ func (server *server) handleUsersChangePassword() http.HandlerFunc {
 		}
 
 		// Creating new pair of tokens
-		tokenDetails, createErr := tokenUtils.CreateTokens(user.ID)
-		if createErr != nil {
-			errWrapped := errors.Wrap(createErr, errWrapMessage)
+		tokenDetails, err := tokenUtils.CreateTokens(user.ID)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			return

@@ -16,4 +16,7 @@ func (server *server) configureRouter() {
 	private.HandleFunc("/me", server.handleUsersMe()).Methods("GET")
 	private.HandleFunc("/change/email", server.handleUsersChangeEmail()).Methods("POST")
 	private.HandleFunc("/change/password", server.handleUsersChangePassword()).Methods("POST")
+
+	private.HandleFunc("/games", server.handleGames()).Methods("POST")
+	private.HandleFunc("/games/{id: [0-9]+}", server.handleGamesGetByID()).Methods("GET")
 }

@@ -21,9 +21,15 @@ var (
 )
 
 type Store struct {
-	db                  *sqlx.DB
-	userRepository      *UserRepository
-	publisherRepository *PublisherRepository
+	db                          *sqlx.DB
+	userRepository              *UserRepository
+	publisherRepository         *PublisherRepository
+	gameRepository              *GameRepository
+	tagRepository               *TagRepository
+	marketRepository            *MarketRepository
+	userGameFavouriteRepository *UserGameFavouriteRepository
+	gameTagRepository           *GameTagRepository
+	gameMarketPriceRepository   *GameMarketPriceRepository
 }
 
 func New(db *sqlx.DB) (*Store, error) {
@@ -69,4 +75,76 @@ func (st *Store) Publishers() store.PublisherRepository {
 	}
 
 	return st.publisherRepository
+}
+
+func (st *Store) Games() store.GameRepository {
+	if st.gameRepository != nil {
+		return st.gameRepository
+	}
+
+	st.gameRepository = &GameRepository{
+		store: st,
+	}
+
+	return st.gameRepository
+}
+
+func (st *Store) Tags() store.TagRepository {
+	if st.tagRepository != nil {
+		return st.tagRepository
+	}
+
+	st.tagRepository = &TagRepository{
+		store: st,
+	}
+
+	return st.tagRepository
+}
+
+func (st *Store) Markets() store.MarketRepository {
+	if st.marketRepository != nil {
+		return st.marketRepository
+	}
+
+	st.marketRepository = &MarketRepository{
+		store: st,
+	}
+
+	return st.marketRepository
+}
+
+func (st *Store) UserGameFavourites() store.UserGameFavouriteRepository {
+	if st.userGameFavouriteRepository != nil {
+		return st.userGameFavouriteRepository
+	}
+
+	st.userGameFavouriteRepository = &UserGameFavouriteRepository{
+		store: st,
+	}
+
+	return st.userGameFavouriteRepository
+}
+
+func (st *Store) GameTags() store.GameTagRepository {
+	if st.gameTagRepository != nil {
+		return st.gameTagRepository
+	}
+
+	st.gameTagRepository = &GameTagRepository{
+		store: st,
+	}
+
+	return st.gameTagRepository
+}
+
+func (st *Store) GameMarketPrices() store.GameMarketPriceRepository {
+	if st.gameMarketPriceRepository != nil {
+		return st.gameMarketPriceRepository
+	}
+
+	st.gameMarketPriceRepository = &GameMarketPriceRepository{
+		store: st,
+	}
+
+	return st.gameMarketPriceRepository
 }

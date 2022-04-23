@@ -58,11 +58,11 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 		methodName := "AuthenticateUser"
 		errWrapMessage := fmt.Sprintf(errMiddlewareMessageFormat, methodName)
 
-		tokenString, tokenExtractErr := tokenUtils.ExtractToken(req)
-		if tokenExtractErr != nil {
-			errWrapped := errors.Wrap(tokenExtractErr, errWrapMessage)
+		tokenString, err := tokenUtils.ExtractToken(req)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(tokenExtractErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenNotProvided:
 				server.error(writer, req, http.StatusUnauthorized, errWrapped)
 			case tokenUtils.ErrTokenWrongFormat:
@@ -76,30 +76,11 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 			return
 		}
 
-		// Already checks in tokenUtils.ExtractTokenMetadata
+		tokenDetails, err := tokenUtils.ExtractTokenMetadata(tokenString)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-		// if err := tokenUtils.IsValid(tokenString); err != nil {
-		// 	err = errors.Wrap(err, errWrapMessage)
-		//
-		// 	switch errors.Cause(err) {
-		// 	case tokenUtils.ErrTokenDamaged:
-		// 		server.error(writer, req, http.StatusBadRequest, err)
-		// 	case tokenUtils.ErrTokenExpiredOrDeleted:
-		// 		server.error(writer, req, http.StatusForbidden, err)
-		// 	default:
-		// 		// Mostly TokenUtils.ErrInternal, probably something with Redis
-		// 		server.log(err)
-		// 		server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
-		// 	}
-		//
-		// 	return
-		// }
-
-		tokenDetails, tokenDetailsErr := tokenUtils.ExtractTokenMetadata(tokenString)
-		if tokenDetailsErr != nil {
-			errWrapped := errors.Wrap(tokenDetailsErr, errWrapMessage)
-
-			switch errors.Cause(tokenDetailsErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 			case tokenUtils.ErrTokenExpiredOrDeleted:
@@ -112,11 +93,11 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 			return
 		}
 
-		userId, userIdErr := tokenUtils.FetchAuth(tokenDetails)
-		if userIdErr != nil {
-			errWrapped := errors.Wrap(userIdErr, errWrapMessage)
+		userId, err := tokenUtils.FetchAuth(tokenDetails)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
-			switch errors.Cause(userIdErr) {
+			switch errors.Cause(err) {
 			case tokenUtils.ErrTokenExpiredOrDeleted:
 				server.error(writer, req, http.StatusForbidden, errWrapped)
 			default:
@@ -127,9 +108,9 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 			}
 		}
 
-		user, userErr := server.store.Users().Find(userId)
-		if userErr != nil {
-			errWrapped := errors.Wrap(userErr, errWrapMessage)
+		user, err := server.store.Users().Find(userId)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)

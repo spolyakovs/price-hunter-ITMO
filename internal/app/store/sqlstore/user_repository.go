@@ -35,7 +35,7 @@ func (userRepository *UserRepository) Create(user *model.User) error {
 		createQuery,
 		user.Username, user.Email, user.EncryptedPassword,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -62,7 +62,7 @@ func (userRepository *UserRepository) FindBy(columnName string, value interface{
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return user, nil
@@ -74,27 +74,27 @@ func (userRepository *UserRepository) UpdateEmail(newEmail string, userId uint64
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	if err := validation.Validate(&newEmail, model.ValidationRulesEmail...); err != nil {
-		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(model.ErrValidationFailed, err.Error()), errWrapMessage)
 	}
 
 	updateEmailQuery := "UPDATE users " +
 		"SET email = $1 " +
 		"WHERE id = $2;"
 
-	countResult, countResultErr := userRepository.store.db.Exec(
+	countResult, err := userRepository.store.db.Exec(
 		updateEmailQuery,
 		newEmail,
 		userId,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -110,31 +110,31 @@ func (userRepository *UserRepository) UpdatePassword(newPassword string, userId 
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	if err := validation.Validate(&newPassword, model.ValidationRulesPassword...); err != nil {
-		return errors.Wrap(errors.WithMessage(model.ErrValidationFailed, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(model.ErrValidationFailed, err.Error()), errWrapMessage)
 	}
 
-	newPasswordEncrypted, encryptErr := model.EncryptString(newPassword)
-	if encryptErr != nil {
-		return errors.Wrap(encryptErr, errWrapMessage)
+	newPasswordEncrypted, err := model.EncryptString(newPassword)
+	if err != nil {
+		return errors.Wrap(err, errWrapMessage)
 	}
 
 	updatePasswordQuery := "UPDATE users " +
 		"SET encrypted_password = $1 " +
 		"WHERE id = $2;"
-	countResult, countResultErr := userRepository.store.db.Exec(
+	countResult, err := userRepository.store.db.Exec(
 		updatePasswordQuery,
 		newPasswordEncrypted,
 		userId,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -151,19 +151,19 @@ func (userRepository *UserRepository) Delete(id uint64) error {
 
 	deleteQuery := "DELETE FROM users WHERE id = $1;"
 
-	countResult, countResultErr := userRepository.store.db.Exec(
+	countResult, err := userRepository.store.db.Exec(
 		deleteQuery,
 		id,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {

@@ -26,7 +26,7 @@ func (tagRepository *TagRepository) Create(tag *model.Tag) error {
 		createQuery,
 		tag.Name,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -53,10 +53,42 @@ func (tagRepository *TagRepository) FindBy(columnName string, value interface{})
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return tag, nil
+}
+
+func (tagRepository *TagRepository) FindAllByGame(game *model.Game) ([]*model.Tag, error) {
+	repositoryName := "Tag"
+	methodName := "FindAllByGame"
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
+
+	tags := []*model.Tag{}
+	findQuery := "SELECT " +
+		"tags.id AS id, " +
+		"tags.name AS name " +
+
+		"FROM tags " +
+
+		"LEFT JOIN game_tags " +
+		"ON (tags.id = game_tags.tag_id) " +
+
+		"WHERE game_tags.game_id = $1;"
+
+	if err := tagRepository.store.db.Select(
+		&tags,
+		findQuery,
+		game.ID,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return []*model.Tag{}, nil
+		}
+
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+	}
+
+	return tags, nil
 }
 
 func (tagRepository *TagRepository) Update(newTag *model.Tag) error {
@@ -68,19 +100,19 @@ func (tagRepository *TagRepository) Update(newTag *model.Tag) error {
 		"SET name = :name " +
 		"WHERE id = :id;"
 
-	countResult, countResultErr := tagRepository.store.db.NamedExec(
+	countResult, err := tagRepository.store.db.NamedExec(
 		updateQuery,
 		newTag,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -97,19 +129,19 @@ func (tagRepository *TagRepository) Delete(id uint64) error {
 
 	deleteQuery := "DELETE FROM tags WHERE id = $1;"
 
-	countResult, countResultErr := tagRepository.store.db.Exec(
+	countResult, err := tagRepository.store.db.Exec(
 		deleteQuery,
 		id,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {

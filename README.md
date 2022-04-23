@@ -2,15 +2,9 @@
 Backend for mobile app Price Hunter, final qualifying work.
 
 It provides API for mobile app
-API methods listed below (**WIP**)
+API methods listed below (not exactly accurate, **WIP**)
 
-[//]: # (TODO: add regex)
-
-[//]: # (TODO: think about GET or POST)
-
-[//]: # (TODO: add methods paths)
-
-[//]: # (TODO: add errors)
+[//]: # (TODO: add methods, paths, variables and error types from GoogleTable)
 
 ### Регистрация
 POST-запрос с полями:
@@ -121,4 +115,3 @@ HTTP 200 полями:
 “id”: *
 ]
 }
-

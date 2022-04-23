@@ -18,24 +18,23 @@ func Start(config *Config) error {
 	startLogger := logrus.New()
 
 	startLogger.Info("Creating database")
-	db, dbErr := newDB(*config)
-	if dbErr != nil {
-		return dbErr
+	db, err := newDB(*config)
+	if err != nil {
+		return err
 	}
 
 	defer db.Close()
 
 	startLogger.Info("Configuring store")
-	store, storeErr := sqlstore.New(db)
-	if storeErr != nil {
-		return storeErr
+	store, err := sqlstore.New(db)
+	if err != nil {
+		return err
 	}
 
 	os.Setenv("TOKEN_SECRET", config.TokenSecret)
 
-	redisErr := tokenUtils.SetupRedis(config.RedisAddr)
-	if redisErr != nil {
-		return redisErr
+	if err := tokenUtils.SetupRedis(config.RedisAddr); err != nil {
+		return err
 	}
 
 	srv := newServer(store)

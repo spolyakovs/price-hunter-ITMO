@@ -27,7 +27,7 @@ func (gameTagRepository *GameTagRepository) Create(gameTag *model.GameTag) error
 		gameTag.Game.ID,
 		gameTag.Tag.ID,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -74,61 +74,13 @@ func (gameTagRepository *GameTagRepository) FindBy(columnName string, value inte
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return gameTag, nil
 }
 
-func (gameTagRepository *GameTagRepository) FindAllBy(columnName string, value interface{}) ([]*model.GameTag, error) {
-	repositoryName := "GameTag"
-	methodName := "FindAllBy"
-	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
-
-	gameTags := []*model.GameTag{}
-	findQuery := fmt.Sprintf("SELECT "+
-		"game_tags.id AS \"id\", "+
-
-		"games.id AS \"game.id\", "+
-		"games.header_image_url AS \"game.header_image_url\", "+
-		"games.name AS \"game.name\", "+
-		"games.description AS \"game.description\", "+
-
-		"publishers.id AS \"game.publisher.id\", "+
-		"publishers.name AS \"game.publisher.name\" "+
-
-		"tags.id AS \"tag.id\", "+
-		"tags.name AS \"tag.name\" "+
-
-		"FROM games "+
-
-		"LEFT JOIN games "+
-		"ON (game_tags.game_id = games.id) "+
-
-		"LEFT JOIN publishers "+
-		"ON (games.publisher_id = publishers.id) "+
-
-		"LEFT JOIN tags "+
-		"ON (game_tags.tag_id = tags.id) "+
-
-		"WHERE %s = $1 LIMIT 1;", columnName)
-
-	if err := gameTagRepository.store.db.Select(
-		&gameTags,
-		findQuery,
-		value,
-	); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
-		}
-
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
-	}
-
-	return gameTags, nil
-}
-
-func (gameTagRepository *GameTagRepository) Update(newGame *model.GameTag) error {
+func (gameTagRepository *GameTagRepository) Update(newGameTag *model.GameTag) error {
 	repositoryName := "GameTag"
 	methodName := "Update"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
@@ -138,19 +90,19 @@ func (gameTagRepository *GameTagRepository) Update(newGame *model.GameTag) error
 		"SET tag_id = :tag.id, " +
 		"WHERE id = :id;"
 
-	countResult, countResultErr := gameTagRepository.store.db.NamedExec(
+	countResult, err := gameTagRepository.store.db.NamedExec(
 		updateQuery,
-		newGame,
+		newGameTag,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -167,19 +119,19 @@ func (gameTagRepository *GameTagRepository) Delete(id uint64) error {
 
 	deleteQuery := "DELETE FROM game_tags WHERE id = $1;"
 
-	countResult, countResultErr := gameTagRepository.store.db.Exec(
+	countResult, err := gameTagRepository.store.db.Exec(
 		deleteQuery,
 		id,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {

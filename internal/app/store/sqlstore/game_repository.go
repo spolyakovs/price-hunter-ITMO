@@ -3,6 +3,7 @@ package sqlstore
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -19,7 +20,7 @@ func (gameRepository *GameRepository) Create(game *model.Game) error {
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO games (header_image_url, name, description, publisher_id) VALUES ($1, $2, $3, $4) RETURNING id;"
+	createQuery := "INSERT INTO games (header_image_url, name, description, release_date, publisher_id) VALUES ($1, $2, $3, TO_DATE('$4', 'dd.MM.YYYY'), $5) RETURNING id;"
 
 	if err := gameRepository.store.db.Get(
 		&game.ID,
@@ -27,9 +28,10 @@ func (gameRepository *GameRepository) Create(game *model.Game) error {
 		game.HeaderImageURL,
 		game.Name,
 		game.Description,
+		game.ReleaseDate,
 		game.Publisher.ID,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -46,13 +48,14 @@ func (gameRepository *GameRepository) FindBy(columnName string, value interface{
 
 	game := &model.Game{}
 	findQuery := fmt.Sprintf("SELECT "+
+		"publishers.id AS \"publisher.id\", "+
+		"publishers.name AS \"publisher.name\" "+
+
 		"games.id AS id, "+
 		"games.header_image_url AS header_image_url, "+
 		"games.name AS name, "+
+		"TO_CHAR(games.release_date, 'dd.MM.YYYY') AS release_date, "+
 		"games.description AS description, "+
-
-		"publishers.id AS \"publisher.id\", "+
-		"publishers.name AS \"publisher.name\" "+
 
 		"FROM games "+
 
@@ -70,45 +73,114 @@ func (gameRepository *GameRepository) FindBy(columnName string, value interface{
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return game, nil
 }
 
-// TODO: findAllBy (tags, ...)
-func (gameRepository *GameRepository) FindAllBy(columnName string, value interface{}) ([]*model.Game, error) {
+func (gameRepository *GameRepository) FindAllByUser(user *model.User) ([]*model.Game, error) {
 	repositoryName := "Game"
-	methodName := "FindAllBy"
+	methodName := "FindAllByUser"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	games := []*model.Game{}
-	findQuery := fmt.Sprintf("SELECT "+
-		"games.id AS id, "+
-		"games.header_image_url AS header_image_url, "+
-		"games.name AS name, "+
-		"games.description AS description, "+
 
-		"publishers.id AS \"publisher.id\", "+
-		"publishers.name AS \"publisher.name\" "+
+	findQuery := "SELECT " +
+		"publishers.id AS \"publisher.id\", " +
+		"publishers.name AS \"publisher.name\" " +
 
-		"FROM games "+
+		"games.id AS id, " +
+		"games.header_image_url AS header_image_url, " +
+		"games.name AS name, " +
+		"TO_CHAR(games.release_date, 'dd.MM.YYYY') AS release_date, " +
+		"games.description AS description, " +
 
-		"LEFT JOIN publishers "+
-		"ON (games.publisher_id = publishers.id) "+
+		"FROM games " +
 
-		"WHERE %s = $1 LIMIT 1;", columnName)
+		"LEFT JOIN publishers " +
+		"ON (games.publisher_id = publishers.id) " +
+
+		"LEFT JOIN user_game_favourites " +
+		"ON (games.id = user_game_favourites.game_id) " +
+		"WHERE user_game_favourites.user_id = $1;"
 
 	if err := gameRepository.store.db.Select(
 		&games,
 		findQuery,
-		value,
+		user.ID,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
+			return []*model.Game{}, nil
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+	}
+
+	return games, nil
+}
+
+func (gameRepository *GameRepository) FindAllByQueryTags(query string, tags []*model.Tag) ([]*model.Game, error) {
+	repositoryName := "Game"
+	methodName := "FindAllByQueryTags"
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
+
+	query = strings.ReplaceAll(query, "%", "\\%")
+	query = strings.ReplaceAll(query, "_", "\\_")
+	query = "%" + query + "%"
+	args := []interface{}{}
+	args = append(args, query)
+	games := []*model.Game{}
+
+	findQuery := "SELECT " +
+		"publishers.id AS \"publisher.id\", " +
+		"publishers.name AS \"publisher.name\", " +
+
+		"games.id AS id, " +
+		"games.header_image_url AS header_image_url, " +
+		"games.name AS name, " +
+		"TO_CHAR(games.release_date, 'dd.MM.YYYY') AS release_date, " +
+		"games.description AS description " +
+
+		"FROM games " +
+
+		"LEFT JOIN publishers " +
+		"ON (games.publisher_id = publishers.id) " +
+
+		"LEFT JOIN game_tags " +
+		"ON (games.id = game_tags.game_id) " +
+		"WHERE (games.name LIKE $1 OR publishers.name LIKE $1)"
+
+	if len(tags) != 0 {
+		findQuery += " AND id IN (" +
+			"    SELECT DISTINCT game_id FROM game_tags WHERE tag_id in ($2)" +
+			")"
+
+		tagsString := ""
+		for _, tag := range tags {
+			if tagsString != "" {
+				tagsString += ", "
+			}
+			tagsString += fmt.Sprint(tag.ID)
+		}
+
+		args = append(args, tagsString)
+	}
+
+	findQuery += ";"
+
+	println(len(args))
+
+	if err := gameRepository.store.db.Select(
+		&games,
+		findQuery,
+		args...,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return []*model.Game{}, nil
+		}
+
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return games, nil
@@ -123,22 +195,23 @@ func (gameRepository *GameRepository) Update(newGame *model.Game) error {
 		"SET header_image_url = :header_image_url, " +
 		"SET name = :name, " +
 		"SET description = :description, " +
+		"SET release_date = TO_DATE(':release_date', 'dd.MM.YYYY'), " +
 		"SET publisher_id = :publisher.id, " +
 		"WHERE id = :id;"
 
-	countResult, countResultErr := gameRepository.store.db.NamedExec(
+	countResult, err := gameRepository.store.db.NamedExec(
 		updateQuery,
 		newGame,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -155,19 +228,19 @@ func (gameRepository *GameRepository) Delete(id uint64) error {
 
 	deleteQuery := "DELETE FROM games WHERE id = $1;"
 
-	countResult, countResultErr := gameRepository.store.db.Exec(
+	countResult, err := gameRepository.store.db.Exec(
 		deleteQuery,
 		id,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {

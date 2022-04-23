@@ -13,7 +13,7 @@ func (s *Store) createTables() error {
 
 	tx, err := s.db.Beginx()
 	if err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -60,7 +60,7 @@ func (s *Store) createTables() error {
 
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -79,7 +79,7 @@ func createTableUsers(tx *sqlx.Tx) error {
 		"encrypted_password varchar NOT NULL );"
 
 	if _, err := tx.Exec(createTableUsersQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -96,7 +96,7 @@ func createTablePublishers(tx *sqlx.Tx) error {
 		"name varchar NOT NULL );"
 
 	if _, err := tx.Exec(createTablePublishersQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -113,10 +113,11 @@ func createTableGames(tx *sqlx.Tx) error {
 		"header_image_url varchar NOT NULL," +
 		"name varchar NOT NULL," +
 		"description varchar NOT NULL," +
+		"release_date date NOT NULL," +
 		"publisher_id bigserial NOT NULL REFERENCES publishers (id) ON DELETE CASCADE );"
 
 	if _, err := tx.Exec(createTableGamesQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -133,7 +134,7 @@ func createTableTags(tx *sqlx.Tx) error {
 		"name varchar NOT NULL );"
 
 	if _, err := tx.Exec(createTableTagsQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -150,7 +151,7 @@ func createTableMarkets(tx *sqlx.Tx) error {
 		"name varchar NOT NULL );"
 
 	if _, err := tx.Exec(createTableMarketsQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -168,7 +169,7 @@ func createTableUserGameFavourites(tx *sqlx.Tx) error {
 		"game_id bigserial NOT NULL REFERENCES games (id) ON DELETE CASCADE );"
 
 	if _, err := tx.Exec(createTableGameFavouritesQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -186,7 +187,7 @@ func createTableGameTags(tx *sqlx.Tx) error {
 		"tag_id bigserial NOT NULL REFERENCES tags (id) ON DELETE CASCADE );"
 
 	if _, err := tx.Exec(createTableGameTagsQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}
@@ -207,7 +208,7 @@ func createTableGameMarketPrices(tx *sqlx.Tx) error {
 		"market_id bigserial NOT NULL REFERENCES markets (id) ON DELETE CASCADE );"
 
 	if _, err := tx.Exec(createTableGameMarketPricesQuery); err != nil {
-		errWrapped := errors.WithMessage(store.ErrUnknownSQL, err.Error())
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
 		return errWrapped
 	}

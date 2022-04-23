@@ -30,7 +30,7 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Create(gameMarketPri
 		gameMarketPrice.Game.ID,
 		gameMarketPrice.Market.ID,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -40,6 +40,7 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Find(id uint64) (*mo
 	return gameMarketPriceRepository.FindBy("id", id)
 }
 
+// TODO: move this func as Find(id)
 // TODO: test especially this (gameMarketPrice -> game -> publisher)
 func (gameMarketPriceRepository *GameMarketPriceRepository) FindBy(columnName string, value interface{}) (*model.GameMarketPrice, error) {
 	repositoryName := "GameMarketPrice"
@@ -86,64 +87,64 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) FindBy(columnName st
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return gameMarketPrice, nil
 }
 
-func (gameMarketPriceRepository *GameMarketPriceRepository) FindAllBy(columnName string, value interface{}) ([]*model.GameMarketPrice, error) {
+func (gameMarketPriceRepository *GameMarketPriceRepository) FindAllByGame(game *model.Game) ([]*model.GameMarketPrice, error) {
 	repositoryName := "GameMarketPrice"
-	methodName := "FindAllBy"
+	methodName := "FindAllByGame"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
 	gameMarketPrices := []*model.GameMarketPrice{}
-	findQuery := fmt.Sprintf("SELECT "+
-		"game_market_prices.id AS id, "+
-		"game_market_prices.initial_value_formatted AS initial_value_formatted, "+
-		"game_market_prices.final_value_formatted AS final_value_formatted, "+
-		"game_market_prices.discount_percent AS discount_percent, "+
+	findQuery := "SELECT " +
+		"game_market_prices.id AS id, " +
+		"game_market_prices.initial_value_formatted AS initial_value_formatted, " +
+		"game_market_prices.final_value_formatted AS final_value_formatted, " +
+		"game_market_prices.discount_percent AS discount_percent, " +
 
-		"games.id AS \"game.id\", "+
-		"games.header_image_url AS \"game.header_image_url\", "+
-		"games.name AS \"game.name\", "+
-		"games.description AS \"game.description\", "+
+		"games.id AS \"game.id\", " +
+		"games.header_image_url AS \"game.header_image_url\", " +
+		"games.name AS \"game.name\", " +
+		"games.description AS \"game.description\", " +
 
-		"publishers.id AS \"game.publisher.id\", "+
-		"publishers.name AS \"game.publisher.name\" "+
+		"publishers.id AS \"game.publisher.id\", " +
+		"publishers.name AS \"game.publisher.name\" " +
 
-		"markets.id AS \"market.id\", "+
-		"markets.name AS \"market.name\" "+
+		"markets.id AS \"market.id\", " +
+		"markets.name AS \"market.name\" " +
 
-		"FROM games "+
+		"FROM games " +
 
-		"LEFT JOIN games "+
-		"ON (game_market_prices.game_id = games.id) "+
+		"LEFT JOIN games " +
+		"ON (game_market_prices.game_id = games.id) " +
 
-		"LEFT JOIN publishers "+
-		"ON (games.publisher_id = publishers.id) "+
+		"LEFT JOIN publishers " +
+		"ON (games.publisher_id = publishers.id) " +
 
-		"LEFT JOIN markets "+
-		"ON (game_market_prices.market_id = markets.id) "+
+		"LEFT JOIN markets " +
+		"ON (game_market_prices.market_id = markets.id) " +
 
-		"WHERE %s = $1 LIMIT 1;", columnName)
+		"WHERE game_market_prices.game_id = $1;"
 
 	if err := gameMarketPriceRepository.store.db.Select(
 		&gameMarketPrices,
 		findQuery,
-		value,
+		game.ID,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
+			return []*model.GameMarketPrice{}, nil
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return gameMarketPrices, nil
 }
 
-func (gameMarketPriceRepository *GameMarketPriceRepository) Update(newGame *model.GameMarketPrice) error {
+func (gameMarketPriceRepository *GameMarketPriceRepository) Update(newGameMarket *model.GameMarketPrice) error {
 	repositoryName := "GameMarketPrice"
 	methodName := "Update"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
@@ -156,19 +157,19 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Update(newGame *mode
 		"SET market_id = :market.id, " +
 		"WHERE id = :id;"
 
-	countResult, countResultErr := gameMarketPriceRepository.store.db.NamedExec(
+	countResult, err := gameMarketPriceRepository.store.db.NamedExec(
 		updateQuery,
-		newGame,
+		newGameMarket,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -185,19 +186,19 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Delete(id uint64) er
 
 	deleteQuery := "DELETE FROM game_market_prices WHERE id = $1;"
 
-	countResult, countResultErr := gameMarketPriceRepository.store.db.Exec(
+	countResult, err := gameMarketPriceRepository.store.db.Exec(
 		deleteQuery,
 		id,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {

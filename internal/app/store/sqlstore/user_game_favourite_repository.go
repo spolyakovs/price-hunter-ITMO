@@ -27,7 +27,7 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) Create(userGameF
 		userGameFavourite.Game.ID,
 		userGameFavourite.User.ID,
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return nil
@@ -81,62 +81,64 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) FindBy(columnNam
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	return userGameFavourite, nil
 }
 
-func (userGameFavouriteRepository *UserGameFavouriteRepository) FindAllBy(columnName string, value interface{}) ([]*model.UserGameFavourite, error) {
+func (userGameFavouriteRepository *UserGameFavouriteRepository) FindByUserGame(user *model.User, game *model.Game) (*model.UserGameFavourite, error) {
 	repositoryName := "UserGameFavourite"
-	methodName := "FindAllBy"
+	methodName := "FindByUserGame"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	userGameFavourites := []*model.UserGameFavourite{}
-	findQuery := fmt.Sprintf("SELECT "+
-		"user_game_favourites.id AS id, "+
+	userGameFavourite := &model.UserGameFavourite{}
+	findQuery := "SELECT " +
+		"user_game_favourites.id AS id, " +
 
-		"games.id AS \"game.id\", "+
-		"games.header_image_url AS \"game.header_image_url\", "+
-		"games.name AS \"game.name\", "+
-		"games.description AS \"game.description\", "+
+		"games.id AS \"game.id\", " +
+		"games.header_image_url AS \"game.header_image_url\", " +
+		"games.name AS \"game.name\", " +
+		"games.description AS \"game.description\", " +
 
-		"publishers.id AS \"game.publisher.id\", "+
-		"publishers.name AS \"game.publisher.name\", "+
+		"publishers.id AS \"game.publisher.id\", " +
+		"publishers.name AS \"game.publisher.name\", " +
 
-		"users.id AS \"user.id\", "+
-		"users.username AS \"user.username\", "+
-		"users.email AS \"user.email\" "+
+		"users.id AS \"user.id\", " +
+		"users.username AS \"user.username\", " +
+		"users.email AS \"user.email\" " +
 
-		"FROM games "+
+		"FROM games " +
 
-		"LEFT JOIN games "+
-		"ON (user_game_favourites.game_id = games.id) "+
+		"LEFT JOIN games " +
+		"ON (user_game_favourites.game_id = games.id) " +
 
-		"LEFT JOIN publishers "+
-		"ON (games.publisher_id = publishers.id) "+
+		"LEFT JOIN publishers " +
+		"ON (games.publisher_id = publishers.id) " +
 
-		"LEFT JOIN users "+
-		"ON (user_game_favourites.user_id = users.id) "+
+		"LEFT JOIN users " +
+		"ON (user_game_favourites.user_id = users.id) " +
 
-		"WHERE %s = $1 LIMIT 1;", columnName)
+		"WHERE user_game_favourites.user_id = $1 " +
+		"AND user_game_favourites.game_id = $2 LIMIT 1;"
 
-	if err := userGameFavouriteRepository.store.db.Select(
-		&userGameFavourites,
+	if err := userGameFavouriteRepository.store.db.Get(
+		userGameFavourite,
 		findQuery,
-		value,
+		user.ID,
+		game.ID,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
 		}
 
-		return nil, errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	return userGameFavourites, nil
+	return userGameFavourite, nil
 }
 
-func (userGameFavouriteRepository *UserGameFavouriteRepository) Update(newGame *model.UserGameFavourite) error {
+func (userGameFavouriteRepository *UserGameFavouriteRepository) Update(newUserGameFavourite *model.UserGameFavourite) error {
 	repositoryName := "UserGameFavourite"
 	methodName := "Update"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
@@ -146,19 +148,19 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) Update(newGame *
 		"SET user_id = :user.id, " +
 		"WHERE id = :id;"
 
-	countResult, countResultErr := userGameFavouriteRepository.store.db.NamedExec(
+	countResult, err := userGameFavouriteRepository.store.db.NamedExec(
 		updateQuery,
-		newGame,
+		newUserGameFavourite,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {
@@ -175,19 +177,19 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) Delete(id uint64
 
 	deleteQuery := "DELETE FROM user_game_favourites WHERE id = $1;"
 
-	countResult, countResultErr := userGameFavouriteRepository.store.db.Exec(
+	countResult, err := userGameFavouriteRepository.store.db.Exec(
 		deleteQuery,
 		id,
 	)
 
-	if countResultErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countResultErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
-	count, countErr := countResult.RowsAffected()
+	count, err := countResult.RowsAffected()
 
-	if countErr != nil {
-		return errors.Wrap(errors.WithMessage(store.ErrUnknownSQL, countErr.Error()), errWrapMessage)
+	if err != nil {
+		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
 	}
 
 	if count == 0 {

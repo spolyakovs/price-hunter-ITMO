@@ -27,7 +27,7 @@ func (user *User) Validate() error {
 		validation.Field(&user.Email, ValidationRulesEmail...),
 		validation.Field(&user.Password, ValidationRulesPassword...),
 	); err != nil {
-		return errors.Wrap(errors.WithMessage(ErrValidationFailed, err.Error()), errWrapMessage)
+		return errors.Wrap(errors.Wrap(ErrValidationFailed, err.Error()), errWrapMessage)
 	}
 
 	return nil

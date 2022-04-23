@@ -20,3 +20,56 @@ type PublisherRepository interface {
 	Update(*model.Publisher) error
 	Delete(uint64) error
 }
+
+type GameRepository interface {
+	Create(*model.Game) error
+	Find(uint64) (*model.Game, error)
+	FindBy(string, interface{}) (*model.Game, error)
+	FindAllByUser(*model.User) ([]*model.Game, error)
+	FindAllByQueryTags(string, []*model.Tag) ([]*model.Game, error)
+	Update(*model.Game) error
+	Delete(uint64) error
+}
+
+type TagRepository interface {
+	Create(*model.Tag) error
+	Find(uint64) (*model.Tag, error)
+	FindBy(string, interface{}) (*model.Tag, error)
+	FindAllByGame(*model.Game) ([]*model.Tag, error)
+	Update(*model.Tag) error
+	Delete(uint64) error
+}
+
+type MarketRepository interface {
+	Create(*model.Market) error
+	Find(uint64) (*model.Market, error)
+	FindBy(string, interface{}) (*model.Market, error)
+	Update(*model.Market) error
+	Delete(uint64) error
+}
+
+type UserGameFavouriteRepository interface {
+	Create(*model.UserGameFavourite) error
+	Find(uint64) (*model.UserGameFavourite, error)
+	FindBy(string, interface{}) (*model.UserGameFavourite, error)
+	FindByUserGame(*model.User, *model.Game) (*model.UserGameFavourite, error)
+	Update(*model.UserGameFavourite) error
+	Delete(uint64) error
+}
+
+type GameTagRepository interface {
+	Create(*model.GameTag) error
+	Find(uint64) (*model.GameTag, error)
+	FindBy(string, interface{}) (*model.GameTag, error)
+	Update(*model.GameTag) error
+	Delete(uint64) error
+}
+
+type GameMarketPriceRepository interface {
+	Create(*model.GameMarketPrice) error
+	Find(uint64) (*model.GameMarketPrice, error)
+	FindBy(string, interface{}) (*model.GameMarketPrice, error)
+	FindAllByGame(*model.Game) ([]*model.GameMarketPrice, error)
+	Update(*model.GameMarketPrice) error
+	Delete(uint64) error
+}
