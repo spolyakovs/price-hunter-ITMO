@@ -90,7 +90,7 @@ func (server *server) handleRegistration() http.HandlerFunc {
 			return
 		}
 
-		server.respond(writer, req, http.StatusOK, nil)
+		server.respond(writer, req, http.StatusOK, map[string]string{})
 	}
 }
 
@@ -180,7 +180,7 @@ func (server *server) handleLogout() http.HandlerFunc {
 			case tokenUtils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 			case tokenUtils.ErrTokenExpiredOrDeleted:
-				server.respond(writer, req, http.StatusOK, nil)
+				server.respond(writer, req, http.StatusOK, map[string]string{})
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
 				server.log(errWrapped)
@@ -196,7 +196,7 @@ func (server *server) handleLogout() http.HandlerFunc {
 			return
 		}
 
-		server.respond(writer, req, http.StatusOK, nil)
+		server.respond(writer, req, http.StatusOK, map[string]string{})
 	}
 }
 

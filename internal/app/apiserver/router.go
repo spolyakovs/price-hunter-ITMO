@@ -18,5 +18,9 @@ func (server *server) configureRouter() {
 	private.HandleFunc("/change/password", server.handleUsersChangePassword()).Methods("POST")
 
 	private.HandleFunc("/games", server.handleGames()).Methods("POST")
-	private.HandleFunc("/games/{id: [0-9]+}", server.handleGamesGetByID()).Methods("GET")
+	private.HandleFunc("/games/{id:[0-9]+}", server.handleGamesGetByID()).Methods("GET")
+
+	private.HandleFunc("/favourites", server.handleFavourites()).Methods("GET")
+	private.HandleFunc("/favourites/add", server.handleFavouritesAdd()).Methods("POST")
+	private.HandleFunc("/favourites/remove", server.handleFavouritesRemove()).Methods("POST")
 }

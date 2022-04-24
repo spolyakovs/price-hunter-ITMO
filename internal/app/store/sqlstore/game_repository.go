@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
@@ -20,7 +21,7 @@ func (gameRepository *GameRepository) Create(game *model.Game) error {
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO games (header_image_url, name, description, release_date, publisher_id) VALUES ($1, $2, $3, TO_DATE('$4', 'dd.MM.YYYY'), $5) RETURNING id;"
+	createQuery := "INSERT INTO games (header_image_url, name, description, release_date, publisher_id) VALUES ($1, $2, $3, TO_DATE($4, 'dd.MM.YYYY'), $5) RETURNING id;"
 
 	if err := gameRepository.store.db.Get(
 		&game.ID,
@@ -49,20 +50,20 @@ func (gameRepository *GameRepository) FindBy(columnName string, value interface{
 	game := &model.Game{}
 	findQuery := fmt.Sprintf("SELECT "+
 		"publishers.id AS \"publisher.id\", "+
-		"publishers.name AS \"publisher.name\" "+
+		"publishers.name AS \"publisher.name\", "+
 
 		"games.id AS id, "+
 		"games.header_image_url AS header_image_url, "+
 		"games.name AS name, "+
 		"TO_CHAR(games.release_date, 'dd.MM.YYYY') AS release_date, "+
-		"games.description AS description, "+
+		"games.description AS description "+
 
 		"FROM games "+
 
 		"LEFT JOIN publishers "+
 		"ON (games.publisher_id = publishers.id) "+
 
-		"WHERE %s = $1 LIMIT 1;", columnName)
+		"WHERE games.%s = $1 LIMIT 1;", columnName)
 
 	if err := gameRepository.store.db.Get(
 		game,
@@ -88,22 +89,22 @@ func (gameRepository *GameRepository) FindAllByUser(user *model.User) ([]*model.
 
 	findQuery := "SELECT " +
 		"publishers.id AS \"publisher.id\", " +
-		"publishers.name AS \"publisher.name\" " +
+		"publishers.name AS \"publisher.name\", " +
 
 		"games.id AS id, " +
 		"games.header_image_url AS header_image_url, " +
 		"games.name AS name, " +
 		"TO_CHAR(games.release_date, 'dd.MM.YYYY') AS release_date, " +
-		"games.description AS description, " +
+		"games.description AS description " +
 
 		"FROM games " +
 
 		"LEFT JOIN publishers " +
 		"ON (games.publisher_id = publishers.id) " +
 
-		"LEFT JOIN user_game_favourites " +
-		"ON (games.id = user_game_favourites.game_id) " +
-		"WHERE user_game_favourites.user_id = $1;"
+		"WHERE games.id IN (" +
+		"    SELECT DISTINCT game_id FROM user_game_favourites WHERE user_id = $1" +
+		")"
 
 	if err := gameRepository.store.db.Select(
 		&games,
@@ -147,29 +148,22 @@ func (gameRepository *GameRepository) FindAllByQueryTags(query string, tags []*m
 		"LEFT JOIN publishers " +
 		"ON (games.publisher_id = publishers.id) " +
 
-		"LEFT JOIN game_tags " +
-		"ON (games.id = game_tags.game_id) " +
-		"WHERE (games.name LIKE $1 OR publishers.name LIKE $1)"
+		"WHERE (LOWER(games.name) LIKE $1 OR LOWER(publishers.name) LIKE $1)"
 
 	if len(tags) != 0 {
-		findQuery += " AND id IN (" +
-			"    SELECT DISTINCT game_id FROM game_tags WHERE tag_id in ($2)" +
+		findQuery += " AND games.id IN (" +
+			"    SELECT DISTINCT game_id FROM game_tags WHERE tag_id = ANY($2)" +
 			")"
 
-		tagsString := ""
+		tagIDs := []uint64{}
 		for _, tag := range tags {
-			if tagsString != "" {
-				tagsString += ", "
-			}
-			tagsString += fmt.Sprint(tag.ID)
+			tagIDs = append(tagIDs, tag.ID)
 		}
 
-		args = append(args, tagsString)
+		args = append(args, pq.Array(tagIDs))
 	}
 
 	findQuery += ";"
-
-	println(len(args))
 
 	if err := gameRepository.store.db.Select(
 		&games,

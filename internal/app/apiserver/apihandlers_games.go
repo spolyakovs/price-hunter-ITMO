@@ -55,10 +55,10 @@ func (server *server) handleGames() http.HandlerFunc {
 				errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("TagName = %s", tagName))
 				server.log(errWrapped)
 
-				if errors.Cause(err) != store.ErrNotFound {
-					server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
-				} else {
+				if errors.Cause(err) == store.ErrNotFound {
 					server.error(writer, req, http.StatusBadRequest, errWrongRequestFormat)
+				} else {
+					server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 				}
 			}
 			queryTags = append(queryTags, tag)
@@ -133,13 +133,13 @@ func (server *server) handleGamesGetByID() http.HandlerFunc {
 		game, err := server.store.Games().Find(id)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
-			errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("ID = %s", id))
+			errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("ID = %d", id))
 			server.log(errWrapped)
 
-			if errors.Cause(err) != store.ErrNotFound {
-				server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
-			} else {
+			if errors.Cause(err) == store.ErrNotFound {
 				server.error(writer, req, http.StatusBadRequest, errWrongRequestFormat)
+			} else {
+				server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 			}
 			return
 		}
@@ -163,7 +163,10 @@ func (server *server) handleGamesGetByID() http.HandlerFunc {
 		if _, err := server.store.UserGameFavourites().FindByUserGame(user, game); err == nil {
 			isFavourite = true
 		} else if errors.Cause(err) != store.ErrNotFound {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
+			return
 		}
 
 		responseStruct := response{

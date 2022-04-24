@@ -59,7 +59,7 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) FindBy(columnNam
 		"users.username AS \"user.username\", "+
 		"users.email AS \"user.email\" "+
 
-		"FROM games "+
+		"FROM user_game_favourites "+
 
 		"LEFT JOIN games "+
 		"ON (user_game_favourites.game_id = games.id) "+
@@ -70,7 +70,7 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) FindBy(columnNam
 		"LEFT JOIN users "+
 		"ON (user_game_favourites.user_id = users.id) "+
 
-		"WHERE %s = $1 LIMIT 1;", columnName)
+		"WHERE user_game_favourites.%s = $1 LIMIT 1;", columnName)
 
 	if err := userGameFavouriteRepository.store.db.Get(
 		userGameFavourite,
@@ -108,7 +108,7 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) FindByUserGame(u
 		"users.username AS \"user.username\", " +
 		"users.email AS \"user.email\" " +
 
-		"FROM games " +
+		"FROM user_game_favourites " +
 
 		"LEFT JOIN games " +
 		"ON (user_game_favourites.game_id = games.id) " +
