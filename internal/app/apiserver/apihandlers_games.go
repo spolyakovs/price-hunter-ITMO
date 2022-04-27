@@ -14,6 +14,8 @@ import (
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 )
 
+// TODO: handleTags (list of all tag names)
+
 func (server *server) handleGames() http.HandlerFunc {
 	type request struct {
 		Query string   `json:"query,omitempty"`
@@ -105,6 +107,7 @@ func (server *server) handleGames() http.HandlerFunc {
 }
 
 func (server *server) handleGamesGetByID() http.HandlerFunc {
+	// TODO: add marketGameURL or something like that
 	type response struct {
 		ID             uint64   `json:"id"`
 		HeaderImageURL string   `json:"header_image"`
