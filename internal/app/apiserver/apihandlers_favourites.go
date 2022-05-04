@@ -10,8 +10,6 @@ import (
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 )
 
-// TODO
-
 func (server *server) handleFavourites() http.HandlerFunc {
 	type responseItem struct {
 		ID             uint64   `json:"id"`

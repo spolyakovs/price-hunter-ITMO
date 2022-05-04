@@ -10,8 +10,10 @@ type Config struct {
 	DatabaseSSLMode  string `toml:"DATABASE_SSLMODE"`
 	RedisAddr        string `toml:"REDIS_ADDR"`
 	TokenSecret      string `toml:"TOKEN_SECRET"`
+	SteamAPIKey      string `toml:"STEAM_API_KEY"`
 }
 
+// TODO: think about changing this
 func NewConfig() *Config {
 	return &Config{
 		BindAddr: ":8080",
