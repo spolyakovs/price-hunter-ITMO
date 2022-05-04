@@ -395,6 +395,7 @@ func (st *Store) fillTableGameMarketPrices() error {
 		InitialValueFormatted: "Free To Play",
 		FinalValueFormatted:   "Free To Play",
 		DiscountPercent:       0,
+		MarketGameURL:         "730",
 		Game:                  games[0],
 		Market:                markets[0],
 	})
@@ -403,6 +404,7 @@ func (st *Store) fillTableGameMarketPrices() error {
 		InitialValueFormatted: "610 руб.",
 		FinalValueFormatted:   "247 руб.",
 		DiscountPercent:       60,
+		MarketGameURL:         "305620",
 		Game:                  games[1],
 		Market:                markets[0],
 	})
@@ -411,6 +413,7 @@ func (st *Store) fillTableGameMarketPrices() error {
 		InitialValueFormatted: "749 руб.",
 		FinalValueFormatted:   "749 руб.",
 		DiscountPercent:       0,
+		MarketGameURL:         "the-long-dark",
 		Game:                  games[1],
 		Market:                markets[1],
 	})
@@ -419,6 +422,7 @@ func (st *Store) fillTableGameMarketPrices() error {
 		InitialValueFormatted: "520 руб.",
 		FinalValueFormatted:   "520 руб.",
 		DiscountPercent:       0,
+		MarketGameURL:         "427520",
 		Game:                  games[2],
 		Market:                markets[0],
 	})
@@ -427,6 +431,7 @@ func (st *Store) fillTableGameMarketPrices() error {
 		InitialValueFormatted: "3 619 руб.",
 		FinalValueFormatted:   "3 619 руб.",
 		DiscountPercent:       0,
+		MarketGameURL:         "factorio",
 		Game:                  games[2],
 		Market:                markets[2],
 	})
@@ -435,6 +440,7 @@ func (st *Store) fillTableGameMarketPrices() error {
 		InitialValueFormatted: "3 999 руб.",
 		FinalValueFormatted:   "3 999 руб.",
 		DiscountPercent:       0,
+		MarketGameURL:         "1245620",
 		Game:                  games[3],
 		Market:                markets[0],
 	})
@@ -443,24 +449,9 @@ func (st *Store) fillTableGameMarketPrices() error {
 		InitialValueFormatted: "1 199 руб.",
 		FinalValueFormatted:   "719 руб.",
 		DiscountPercent:       40,
+		MarketGameURL:         "221100",
 		Game:                  games[4],
 		Market:                markets[0],
-	})
-
-	gameMarketPrices = append(gameMarketPrices, &model.GameMarketPrice{
-		InitialValueFormatted: "1 999 руб.",
-		FinalValueFormatted:   "999 руб.",
-		DiscountPercent:       50,
-		Game:                  games[4],
-		Market:                markets[1],
-	})
-
-	gameMarketPrices = append(gameMarketPrices, &model.GameMarketPrice{
-		InitialValueFormatted: "1 999 руб.",
-		FinalValueFormatted:   "999 руб.",
-		DiscountPercent:       50,
-		Game:                  games[4],
-		Market:                markets[2],
 	})
 
 	for _, gameMarketPrice := range gameMarketPrices {

@@ -105,7 +105,7 @@ func createTablePublishers(tx *sqlx.Tx) error {
 }
 
 func createTableGames(tx *sqlx.Tx) error {
-	tableName := "Users"
+	tableName := "Games"
 	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
 	createTableGamesQuery := "CREATE TABLE IF NOT EXISTS games (" +
@@ -126,7 +126,7 @@ func createTableGames(tx *sqlx.Tx) error {
 }
 
 func createTableTags(tx *sqlx.Tx) error {
-	tableName := "Users"
+	tableName := "Tags"
 	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
 	createTableTagsQuery := "CREATE TABLE IF NOT EXISTS tags (" +
@@ -143,7 +143,7 @@ func createTableTags(tx *sqlx.Tx) error {
 }
 
 func createTableMarkets(tx *sqlx.Tx) error {
-	tableName := "Users"
+	tableName := "Markets"
 	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
 	createTableMarketsQuery := "CREATE TABLE IF NOT EXISTS markets (" +
@@ -160,7 +160,7 @@ func createTableMarkets(tx *sqlx.Tx) error {
 }
 
 func createTableUserGameFavourites(tx *sqlx.Tx) error {
-	tableName := "Users"
+	tableName := "UserGameFavourites"
 	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
 	createTableGameFavouritesQuery := "CREATE TABLE IF NOT EXISTS user_game_favourites (" +
@@ -178,7 +178,7 @@ func createTableUserGameFavourites(tx *sqlx.Tx) error {
 }
 
 func createTableGameTags(tx *sqlx.Tx) error {
-	tableName := "Users"
+	tableName := "GameTags"
 	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
 	createTableGameTagsQuery := "CREATE TABLE IF NOT EXISTS game_tags (" +
@@ -196,7 +196,7 @@ func createTableGameTags(tx *sqlx.Tx) error {
 }
 
 func createTableGameMarketPrices(tx *sqlx.Tx) error {
-	tableName := "Users"
+	tableName := "GameMarketPrices"
 	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
 
 	createTableGameMarketPricesQuery := "CREATE TABLE IF NOT EXISTS game_market_prices (" +
@@ -204,6 +204,7 @@ func createTableGameMarketPrices(tx *sqlx.Tx) error {
 		"initial_value_formatted varchar NOT NULL," +
 		"final_value_formatted varchar NOT NULL," +
 		"discount_percent integer NOT NULL," +
+		"market_game_url varchar NOT NULL," +
 		"game_id bigserial NOT NULL REFERENCES games (id) ON DELETE CASCADE," +
 		"market_id bigserial NOT NULL REFERENCES markets (id) ON DELETE CASCADE );"
 

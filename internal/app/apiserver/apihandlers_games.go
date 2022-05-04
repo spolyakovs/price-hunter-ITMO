@@ -108,7 +108,7 @@ func (server *server) handleGames() http.HandlerFunc {
 }
 
 func (server *server) handleGamesGetByID() http.HandlerFunc {
-	// TODO: add marketGameURL or something like that
+	// TODO: add "prices" field
 	type response struct {
 		ID             uint64   `json:"id"`
 		HeaderImageURL string   `json:"header_image"`

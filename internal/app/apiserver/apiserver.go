@@ -8,6 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/apiStore"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 )
@@ -33,7 +34,13 @@ func Start(config *Config) error {
 
 	os.Setenv("TOKEN_SECRET", config.TokenSecret)
 
+	startLogger.Info("Configuring Redis")
 	if err := tokenUtils.SetupRedis(config.RedisAddr); err != nil {
+		return err
+	}
+
+	startLogger.Info("Updating games info")
+	if err := updateGames(*config); err != nil {
 		return err
 	}
 
@@ -41,6 +48,16 @@ func Start(config *Config) error {
 	startLogger.Info("Server started")
 
 	return http.ListenAndServe(config.BindAddr, srv)
+}
+
+func updateGames(config Config) error {
+	apiSteam := *apiStore.NewAPISteam(config.SteamAPIKey)
+	_, err := apiSteam.GetGamesFull()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newDB(config Config) (*sqlx.DB, error) {

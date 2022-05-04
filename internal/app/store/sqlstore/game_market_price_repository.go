@@ -21,7 +21,7 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Create(gameMarketPri
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO game_market_prices (initial_value_formatted, final_value_formatted, discount_percent, game_id, market_id) VALUES ($1, $2, $3, $4, $5) RETURNING id;"
+	createQuery := "INSERT INTO game_market_prices (initial_value_formatted, final_value_formatted, discount_percent, market_game_url, game_id, market_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;"
 
 	if err := gameMarketPriceRepository.store.db.Get(
 		&gameMarketPrice.ID,
@@ -29,6 +29,7 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Create(gameMarketPri
 		gameMarketPrice.InitialValueFormatted,
 		gameMarketPrice.FinalValueFormatted,
 		gameMarketPrice.DiscountPercent,
+		gameMarketPrice.MarketGameURL,
 		gameMarketPrice.Game.ID,
 		gameMarketPrice.Market.ID,
 	); err != nil {
@@ -55,6 +56,7 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) FindBy(columnName st
 		"game_market_prices.initial_value_formatted AS initial_value_formatted, "+
 		"game_market_prices.final_value_formatted AS final_value_formatted, "+
 		"game_market_prices.discount_percent AS discount_percent, "+
+		"game_market_prices.market_game_url AS market_game_url, "+
 
 		"games.id AS \"game.id\", "+
 		"games.header_image_url AS \"game.header_image_url\", "+
@@ -106,6 +108,7 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) FindAllByGame(game *
 		"game_market_prices.initial_value_formatted AS initial_value_formatted, " +
 		"game_market_prices.final_value_formatted AS final_value_formatted, " +
 		"game_market_prices.discount_percent AS discount_percent, " +
+		"game_market_prices.market_game_url AS market_game_url, " +
 
 		"games.id AS \"game.id\", " +
 		"games.header_image_url AS \"game.header_image_url\", " +
@@ -155,6 +158,7 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Update(newGameMarket
 		"SET initial_value_formatted = :initial_value_formatted, " +
 		"SET final_value_formatted = :final_value_formatted, " +
 		"SET discount_percent = :discount_percent, " +
+		"SET market_game_url = :market_game_url, " +
 		"SET game_id = :game.id, " +
 		"SET market_id = :market.id, " +
 		"WHERE id = :id;"
