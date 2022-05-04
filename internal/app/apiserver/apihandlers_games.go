@@ -62,6 +62,7 @@ func (server *server) handleGames() http.HandlerFunc {
 				} else {
 					server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
 				}
+				return
 			}
 			queryTags = append(queryTags, tag)
 		}
