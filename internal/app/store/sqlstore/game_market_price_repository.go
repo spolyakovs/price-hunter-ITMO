@@ -14,8 +14,6 @@ type GameMarketPriceRepository struct {
 	store *Store
 }
 
-// TODO: add marketGameURL or something like that
-
 func (gameMarketPriceRepository *GameMarketPriceRepository) Create(gameMarketPrice *model.GameMarketPrice) error {
 	repositoryName := "GameMarketPrice"
 	methodName := "Create"

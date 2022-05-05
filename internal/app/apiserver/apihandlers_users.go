@@ -14,8 +14,6 @@ import (
 
 // TODO: add comments
 // TODO: think about moving all "response" errors to apiserver/errors, and in other packages will be internal errors (check like "switch error.Cause(err)")
-// TODO: ONLY english letters in game name (debatable about description)
-// TODO: restrincting number of games in games_list request (and add offset param)
 
 func (server *server) handleRegistration() http.HandlerFunc {
 	type request struct {

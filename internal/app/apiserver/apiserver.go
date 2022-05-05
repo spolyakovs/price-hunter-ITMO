@@ -52,7 +52,7 @@ func Start(config *Config) error {
 
 func updateGames(config Config) error {
 	apiSteam := *apiStore.NewAPISteam(config.SteamAPIKey)
-	_, err := apiSteam.GetGamesFull()
+	_, err := apiSteam.GetGames()
 	if err != nil {
 		return err
 	}
