@@ -145,7 +145,7 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) Update(newUserGa
 
 	updateQuery := "UPDATE user_game_favourites " +
 		"SET game_id = :game.id, " +
-		"SET user_id = :user.id, " +
+		"user_id = :user.id " +
 		"WHERE id = :id;"
 
 	countResult, err := userGameFavouriteRepository.store.db.NamedExec(

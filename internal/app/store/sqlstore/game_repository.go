@@ -80,6 +80,42 @@ func (gameRepository *GameRepository) FindBy(columnName string, value interface{
 	return game, nil
 }
 
+func (gameRepository *GameRepository) FindAll() ([]*model.Game, error) {
+	repositoryName := "Game"
+	methodName := "FindAll"
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
+
+	games := []*model.Game{}
+
+	findQuery := "SELECT " +
+		"publishers.id AS \"publisher.id\", " +
+		"publishers.name AS \"publisher.name\", " +
+
+		"games.id AS id, " +
+		"games.header_image_url AS header_image_url, " +
+		"games.name AS name, " +
+		"TO_CHAR(games.release_date, 'dd.MM.YYYY') AS release_date, " +
+		"games.description AS description " +
+
+		"FROM games " +
+
+		"LEFT JOIN publishers " +
+		"ON (games.publisher_id = publishers.id);"
+
+	if err := gameRepository.store.db.Select(
+		&games,
+		findQuery,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return []*model.Game{}, nil
+		}
+
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+	}
+
+	return games, nil
+}
+
 func (gameRepository *GameRepository) FindAllByUser(user *model.User) ([]*model.Game, error) {
 	repositoryName := "Game"
 	methodName := "FindAllByUser"
@@ -104,7 +140,7 @@ func (gameRepository *GameRepository) FindAllByUser(user *model.User) ([]*model.
 
 		"WHERE games.id IN (" +
 		"    SELECT DISTINCT game_id FROM user_game_favourites WHERE user_id = $1" +
-		")"
+		");"
 
 	if err := gameRepository.store.db.Select(
 		&games,
@@ -187,10 +223,10 @@ func (gameRepository *GameRepository) Update(newGame *model.Game) error {
 
 	updateQuery := "UPDATE games " +
 		"SET header_image_url = :header_image_url, " +
-		"SET name = :name, " +
-		"SET description = :description, " +
-		"SET release_date = TO_DATE(':release_date', 'dd.MM.YYYY'), " +
-		"SET publisher_id = :publisher.id, " +
+		"name = :name, " +
+		"description = :description, " +
+		"release_date = TO_DATE(':release_date', 'dd.MM.YYYY'), " +
+		"publisher_id = :publisher.id " +
 		"WHERE id = :id;"
 
 	countResult, err := gameRepository.store.db.NamedExec(

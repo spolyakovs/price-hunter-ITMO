@@ -87,7 +87,7 @@ func (gameTagRepository *GameTagRepository) Update(newGameTag *model.GameTag) er
 
 	updateQuery := "UPDATE game_tags " +
 		"SET game_id = :game.id, " +
-		"SET tag_id = :tag.id, " +
+		"tag_id = :tag.id " +
 		"WHERE id = :id;"
 
 	countResult, err := gameTagRepository.store.db.NamedExec(

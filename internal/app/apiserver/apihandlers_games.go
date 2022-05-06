@@ -16,6 +16,7 @@ import (
 
 // TODO: handleTags (list of all tag names)
 
+// TODO: may be restrincting number of games in games_list request (and add offset param)
 func (server *server) handleGames() http.HandlerFunc {
 	type request struct {
 		Query string   `json:"query,omitempty"`
@@ -41,6 +42,7 @@ func (server *server) handleGames() http.HandlerFunc {
 			server.error(writer, req, http.StatusBadRequest, errWrongRequestFormat)
 			return
 		}
+
 		queryTags := []*model.Tag{}
 
 		for _, tagName := range requestStruct.Tags {

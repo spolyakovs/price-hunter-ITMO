@@ -95,6 +95,59 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) FindBy(columnName st
 	return gameMarketPrice, nil
 }
 
+func (gameMarketPriceRepository *GameMarketPriceRepository) FindByGameMarket(game *model.Game, market *model.Market) (*model.GameMarketPrice, error) {
+	repositoryName := "GameMarketPrice"
+	methodName := "FindByGameMarket"
+	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
+
+	gameMarketPrice := &model.GameMarketPrice{}
+	findQuery := "SELECT " +
+		"game_market_prices.id AS id, " +
+		"game_market_prices.initial_value_formatted AS initial_value_formatted, " +
+		"game_market_prices.final_value_formatted AS final_value_formatted, " +
+		"game_market_prices.discount_percent AS discount_percent, " +
+		"game_market_prices.market_game_url AS market_game_url, " +
+
+		"games.id AS \"game.id\", " +
+		"games.header_image_url AS \"game.header_image_url\", " +
+		"games.name AS \"game.name\", " +
+		"games.description AS \"game.description\", " +
+
+		"publishers.id AS \"game.publisher.id\", " +
+		"publishers.name AS \"game.publisher.name\", " +
+
+		"markets.id AS \"market.id\", " +
+		"markets.name AS \"market.name\" " +
+
+		"FROM game_market_prices " +
+
+		"LEFT JOIN games " +
+		"ON (game_market_prices.game_id = games.id) " +
+
+		"LEFT JOIN publishers " +
+		"ON (games.publisher_id = publishers.id) " +
+
+		"LEFT JOIN markets " +
+		"ON (game_market_prices.market_id = markets.id) " +
+
+		"WHERE game_market_prices.game_id = $1 AND game_market_prices.market_id = $2 LIMIT 1;"
+
+	if err := gameMarketPriceRepository.store.db.Get(
+		gameMarketPrice,
+		findQuery,
+		game.ID,
+		market.ID,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.Wrap(store.ErrNotFound, errWrapMessage)
+		}
+
+		return nil, errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+	}
+
+	return gameMarketPrice, nil
+}
+
 func (gameMarketPriceRepository *GameMarketPriceRepository) FindAllByGame(game *model.Game) ([]*model.GameMarketPrice, error) {
 	repositoryName := "GameMarketPrice"
 	methodName := "FindAllByGame"
@@ -114,12 +167,12 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) FindAllByGame(game *
 		"games.description AS \"game.description\", " +
 
 		"publishers.id AS \"game.publisher.id\", " +
-		"publishers.name AS \"game.publisher.name\" " +
+		"publishers.name AS \"game.publisher.name\", " +
 
 		"markets.id AS \"market.id\", " +
 		"markets.name AS \"market.name\" " +
 
-		"FROM games " +
+		"FROM game_market_prices " +
 
 		"LEFT JOIN games " +
 		"ON (game_market_prices.game_id = games.id) " +
@@ -154,11 +207,11 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Update(newGameMarket
 
 	updateQuery := "UPDATE game_market_prices " +
 		"SET initial_value_formatted = :initial_value_formatted, " +
-		"SET final_value_formatted = :final_value_formatted, " +
-		"SET discount_percent = :discount_percent, " +
-		"SET market_game_url = :market_game_url, " +
-		"SET game_id = :game.id, " +
-		"SET market_id = :market.id, " +
+		"final_value_formatted = :final_value_formatted, " +
+		"discount_percent = :discount_percent, " +
+		"market_game_url = :market_game_url, " +
+		"game_id = :game.id, " +
+		"market_id = :market.id " +
 		"WHERE id = :id;"
 
 	countResult, err := gameMarketPriceRepository.store.db.NamedExec(

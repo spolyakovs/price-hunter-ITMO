@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/apiStore"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
 )
@@ -40,7 +41,7 @@ func Start(config *Config) error {
 	}
 
 	startLogger.Info("Updating games info")
-	if err := updateGames(*config); err != nil {
+	if err := updateGames(*config, store); err != nil {
 		return err
 	}
 
@@ -50,12 +51,16 @@ func Start(config *Config) error {
 	return http.ListenAndServe(config.BindAddr, srv)
 }
 
-func updateGames(config Config) error {
-	apiSteam := *apiStore.NewAPISteam(config.SteamAPIKey)
-	_, err := apiSteam.GetGames()
-	if err != nil {
+func updateGames(config Config, st store.Store) error {
+	apiSteam := *apiStore.NewAPISteam(config.SteamAPIKey, st)
+
+	if err := apiSteam.GetGames(); err != nil {
 		return err
 	}
+
+	// if err := apiSteam.UpdateGameMarketPrices(); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

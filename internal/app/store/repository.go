@@ -25,6 +25,7 @@ type GameRepository interface {
 	Create(*model.Game) error
 	Find(uint64) (*model.Game, error)
 	FindBy(string, interface{}) (*model.Game, error)
+	FindAll() ([]*model.Game, error)
 	FindAllByUser(*model.User) ([]*model.Game, error)
 	FindAllByQueryTags(string, []*model.Tag) ([]*model.Game, error)
 	Update(*model.Game) error
@@ -69,6 +70,7 @@ type GameMarketPriceRepository interface {
 	Create(*model.GameMarketPrice) error
 	Find(uint64) (*model.GameMarketPrice, error)
 	FindBy(string, interface{}) (*model.GameMarketPrice, error)
+	FindByGameMarket(*model.Game, *model.Market) (*model.GameMarketPrice, error)
 	FindAllByGame(*model.Game) ([]*model.GameMarketPrice, error)
 	Update(*model.GameMarketPrice) error
 	Delete(uint64) error
