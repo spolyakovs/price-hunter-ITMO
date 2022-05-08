@@ -48,6 +48,10 @@ func checkGameName(gameName string) bool {
 
 	gameNameLower := strings.ToLower(gameName)
 
+	if gameNameLower == "" {
+		return false
+	}
+
 	for _, re := range regexes {
 		if re.MatchString(gameNameLower) {
 			return false

@@ -58,6 +58,11 @@ func (s *Store) createTables() error {
 		return errWrapped
 	}
 
+	if err := createTableMarketBlacklist(tx); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
+	}
+
 	if err := tx.Commit(); err != nil {
 		tx.Rollback()
 		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
@@ -206,6 +211,24 @@ func createTableGameMarketPrices(tx *sqlx.Tx) error {
 		"discount_percent integer NOT NULL," +
 		"market_game_url varchar NOT NULL," +
 		"game_id bigserial NOT NULL REFERENCES games (id) ON DELETE CASCADE," +
+		"market_id bigserial NOT NULL REFERENCES markets (id) ON DELETE CASCADE );"
+
+	if _, err := tx.Exec(createTableGameMarketPricesQuery); err != nil {
+		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
+		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+		return errWrapped
+	}
+
+	return nil
+}
+
+func createTableMarketBlacklist(tx *sqlx.Tx) error {
+	tableName := "MarketBlacklist"
+	errWrapMessage := fmt.Sprintf(store.ErrCreateTablesMessageFormat, tableName)
+
+	createTableGameMarketPricesQuery := "CREATE TABLE IF NOT EXISTS market_blacklist (" +
+		"id bigserial NOT NULL PRIMARY KEY," +
+		"market_game_url varchar NOT NULL," +
 		"market_id bigserial NOT NULL REFERENCES markets (id) ON DELETE CASCADE );"
 
 	if _, err := tx.Exec(createTableGameMarketPricesQuery); err != nil {

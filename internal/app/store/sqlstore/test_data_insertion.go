@@ -20,13 +20,13 @@ var (
 )
 
 var tableNames = []string{
-	"game_market_prices",
-	"game_tags",
-	"user_game_favourites",
+	// "game_market_prices",
+	// "game_tags",
+	// "user_game_favourites",
 	"markets",
-	"tags",
-	"games",
-	"publishers",
+	// "tags",
+	// "games",
+	// "publishers",
 	"users",
 }
 
@@ -39,37 +39,37 @@ func (st *Store) fillTables() error {
 		return err
 	}
 
-	if err := st.fillTablePublishers(); err != nil {
-		return err
-	}
+	// if err := st.fillTablePublishers(); err != nil {
+	// 	return err
+	// }
 
-	if err := st.fillTableGames(); err != nil {
-		return err
-	}
+	// if err := st.fillTableGames(); err != nil {
+	// 	return err
+	// }
 
-	if err := st.fillTableTags(); err != nil {
-		return err
-	}
+	// if err := st.fillTableTags(); err != nil {
+	// 	return err
+	// }
 
 	if err := st.fillTableMarkets(); err != nil {
 		return err
 	}
 
-	if err := st.fillTableUserGameFavourites(); err != nil {
-		return err
-	}
+	// if err := st.fillTableUserGameFavourites(); err != nil {
+	// 	return err
+	// }
 
-	if err := st.fillTableGameTags(); err != nil {
-		return err
-	}
+	// if err := st.fillTableGameTags(); err != nil {
+	// 	return err
+	// }
 
-	if err := st.fillTableUserGameFavourites(); err != nil {
-		return err
-	}
+	// if err := st.fillTableUserGameFavourites(); err != nil {
+	// 	return err
+	// }
 
-	if err := st.fillTableGameMarketPrices(); err != nil {
-		return err
-	}
+	// if err := st.fillTableGameMarketPrices(); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

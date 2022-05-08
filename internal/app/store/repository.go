@@ -75,3 +75,9 @@ type GameMarketPriceRepository interface {
 	Update(*model.GameMarketPrice) error
 	Delete(uint64) error
 }
+
+type MarketBlacklistItemRepository interface {
+	Create(*model.MarketBlacklistItem) error
+	CheckByURL(string) (bool, error)
+	Delete(uint64) error
+}

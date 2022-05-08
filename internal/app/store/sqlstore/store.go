@@ -21,15 +21,16 @@ var (
 )
 
 type Store struct {
-	db                          *sqlx.DB
-	userRepository              *UserRepository
-	publisherRepository         *PublisherRepository
-	gameRepository              *GameRepository
-	tagRepository               *TagRepository
-	marketRepository            *MarketRepository
-	userGameFavouriteRepository *UserGameFavouriteRepository
-	gameTagRepository           *GameTagRepository
-	gameMarketPriceRepository   *GameMarketPriceRepository
+	db                            *sqlx.DB
+	userRepository                *UserRepository
+	publisherRepository           *PublisherRepository
+	gameRepository                *GameRepository
+	tagRepository                 *TagRepository
+	marketRepository              *MarketRepository
+	userGameFavouriteRepository   *UserGameFavouriteRepository
+	gameTagRepository             *GameTagRepository
+	gameMarketPriceRepository     *GameMarketPriceRepository
+	marketBlacklistItemRepository *MarketBlacklistItemRepository
 }
 
 func New(db *sqlx.DB) (*Store, error) {
@@ -147,4 +148,16 @@ func (st *Store) GameMarketPrices() store.GameMarketPriceRepository {
 	}
 
 	return st.gameMarketPriceRepository
+}
+
+func (st *Store) MarketBlacklist() store.MarketBlacklistItemRepository {
+	if st.gameMarketPriceRepository != nil {
+		return st.marketBlacklistItemRepository
+	}
+
+	st.marketBlacklistItemRepository = &MarketBlacklistItemRepository{
+		store: st,
+	}
+
+	return st.marketBlacklistItemRepository
 }

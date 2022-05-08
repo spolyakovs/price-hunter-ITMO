@@ -9,4 +9,5 @@ type Store interface {
 	UserGameFavourites() UserGameFavouriteRepository
 	GameTags() GameTagRepository
 	GameMarketPrices() GameMarketPriceRepository
+	MarketBlacklist() MarketBlacklistItemRepository
 }

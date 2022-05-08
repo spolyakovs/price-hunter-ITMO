@@ -11,10 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
-	"golang.org/x/sync/errgroup"
 )
 
-// TODO: write APIEpicGames
 // TODO: write APIGog
 
 type APISteam struct {
@@ -69,20 +67,32 @@ func (api *APISteam) GetGames() error {
 
 	for _, app := range responseStruct.AppList.Apps {
 		gameNameClean := cleanGameName(app.Name)
+		appID := strconv.Itoa(app.AppID)
 
-		gameFound, err := api.store.Games().FindBy("name", gameNameClean)
+		if checkGameName(gameNameClean) {
+			blacklisted, err := api.store.MarketBlacklist().CheckByURL(appID)
 
-		if err != nil {
-			if errors.Cause(err) != store.ErrNotFound {
+			if err != nil {
 				errWrapped := errors.Wrap(err, errWrapMessage)
 				return errWrapped
 			}
 
-			if checkGameName(gameNameClean) {
-				appIDs = append(appIDs, strconv.Itoa(app.AppID))
+			if blacklisted {
+				continue
 			}
-		} else {
-			gamesToUpdate[strconv.Itoa(app.AppID)] = gameFound
+
+			gameFound, err := api.store.Games().FindBy("name", gameNameClean)
+
+			if err != nil {
+				if errors.Cause(err) != store.ErrNotFound {
+					errWrapped := errors.Wrap(err, errWrapMessage)
+					return errWrapped
+				}
+
+				appIDs = append(appIDs, appID)
+			} else {
+				gamesToUpdate[appID] = gameFound
+			}
 		}
 	}
 
@@ -92,23 +102,27 @@ func (api *APISteam) GetGames() error {
 		return errWrapped
 	}
 
+	fmt.Println(len(gamesToUpdate))
+
 	if err := api.UpdateGameMarketPrices(gamesToUpdate, marketSteam); err != nil {
 		errWrapped := errors.Wrap(err, errWrapMessage)
 		return errWrapped
 	}
 
 	maxGameCount := 1000
-
-	g := new(errgroup.Group)
+	if maxGameCount > len(appIDs) {
+		maxGameCount = len(appIDs)
+	}
+	counter := 0
+	fmt.Println("Getting GameInfo from Steam")
 
 	for _, appID := range appIDs[:maxGameCount] {
-		g.Go(func() error {
-			return api.getSteamGameInfo(appID, marketSteam)
-		})
-	}
-	if err := g.Wait(); err != nil {
-		errWrapped := errors.Wrap(err, errWrapMessage)
-		return errWrapped
+		if err := api.getSteamGameInfo(appID, marketSteam); err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			return errWrapped
+		}
+		fmt.Printf("%d/%d\r", counter, maxGameCount)
+		counter += 1
 	}
 
 	fmt.Printf("Successfully got GameInfo from Steam for all %d games\n", maxGameCount)
@@ -144,6 +158,9 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 	maxGamesCount := 100
 	offset := 0
 
+	counter := 0
+	fmt.Println("UpdatingPrices from Steam")
+
 	for {
 		var currentAppIDs []string
 
@@ -152,7 +169,7 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 			offset += maxGamesCount
 		} else if len(appIDs)-offset > 0 {
 			currentAppIDs = appIDs[offset:]
-			return nil
+			offset = len(appIDs)
 		} else {
 			break
 		}
@@ -173,8 +190,6 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 		}
 		defer resp.Body.Close()
 
-		g := new(errgroup.Group)
-
 		for _, appID := range currentAppIDs {
 			gameInfoRaw := responseStruct[appID]
 
@@ -187,19 +202,32 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 				Market:                marketSteam,
 			}
 
-			g.Go(func() error {
-				// TODO: Check if record exists??? or mb clear DB and try again
-				return api.store.GameMarketPrices().Update(gameMarketPrice)
-			})
-		}
+			gameMarketPriceFound, err := api.store.GameMarketPrices().FindByGameMarket(gamesToUpdate[appID], marketSteam)
+			if err != nil {
+				if errors.Cause(err) != store.ErrNotFound {
+					errWrapped := errors.Wrap(err, errWrapMessage)
+					return errWrapped
+				}
 
-		if err := g.Wait(); err != nil {
-			errWrapped := errors.Wrap(err, errWrapMessage)
-			return errWrapped
-		}
+				if err := api.store.GameMarketPrices().Create(gameMarketPrice); err != nil {
+					errWrapped := errors.Wrap(err, errWrapMessage)
+					return errWrapped
+				}
+			} else {
+				gameMarketPrice.ID = gameMarketPriceFound.ID
 
-		fmt.Printf("Successfully updated prices from Steam for games from offset %d\n", offset)
+				if err := api.store.GameMarketPrices().Update(gameMarketPrice); err != nil {
+					errWrapped := errors.Wrap(err, errWrapMessage)
+					return errWrapped
+				}
+			}
+
+			fmt.Printf("%d/%d\r", counter, len(gamesToUpdate))
+			counter += 1
+		}
 	}
+
+	fmt.Printf("Successfully updated prices from Steam for all %d games\n", len(gamesToUpdate))
 
 	return nil
 }
@@ -259,27 +287,49 @@ func (api *APISteam) getSteamGameInfo(appID string, marketSteam *model.Market) e
 	defer resp.Body.Close()
 
 	gameInfoRaw := responseStruct[appID]
+	marketBlacklist := &model.MarketBlacklistItem{
+		MarketGameURL: appID,
+		Market:        marketSteam,
+	}
 
 	if !gameInfoRaw.Success {
+		if err := api.store.MarketBlacklist().Create(marketBlacklist); err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			errWrapped = errors.Wrap(err, fmt.Sprintf("AppID: %s", appID))
+			return errWrapped
+		}
 		return nil
 	}
 
 	if gameInfoRaw.Data.Type != "game" {
+		if err := api.store.MarketBlacklist().Create(marketBlacklist); err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			errWrapped = errors.Wrap(err, fmt.Sprintf("AppID: %s", appID))
+			return errWrapped
+		}
 		return nil
 	}
 
 	if gameInfoRaw.Data.ReleaseDate.ComingSoon {
+		if err := api.store.MarketBlacklist().Create(marketBlacklist); err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			errWrapped = errors.Wrap(err, fmt.Sprintf("AppID: %s", appID))
+			return errWrapped
+		}
 		return nil
 	}
 
 	inputDateLayout := "2 Jan, 2006"
 	outputDateLayout := "02.01.2006"
 
-	releaseDateClean, err := time.Parse(inputDateLayout, gameInfoRaw.Data.ReleaseDate.Date)
-	if err != nil {
-		errWrapped := errors.Wrap(err, errWrapMessage)
-		errWrapped = errors.Wrap(err, fmt.Sprintf("AppID: %s", appID))
-		return errWrapped
+	releaseDateClean, errParse := time.Parse(inputDateLayout, gameInfoRaw.Data.ReleaseDate.Date)
+	if errParse != nil {
+		if err := api.store.MarketBlacklist().Create(marketBlacklist); err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			errWrapped = errors.Wrap(err, fmt.Sprintf("AppID: %s", appID))
+			return errWrapped
+		}
+		return nil
 	}
 
 	publisher := &model.Publisher{

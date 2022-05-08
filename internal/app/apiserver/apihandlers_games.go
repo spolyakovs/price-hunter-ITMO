@@ -16,7 +16,7 @@ import (
 
 // TODO: handleTags (list of all tag names)
 
-// TODO: may be restrincting number of games in games_list request (and add offset param)
+// TODO: restrincting number of games in games_list request (and add offset param)
 func (server *server) handleGames() http.HandlerFunc {
 	type request struct {
 		Query string   `json:"query,omitempty"`
