@@ -15,6 +15,9 @@ import (
 
 // TODO: write APIGog
 
+// TODO: hardcode adding titles that exist in EGS and GOG
+// TODO: hardcode titles by Publisher (Valve, Bethesda ...)
+// TODO: think about sexual content
 type APISteam struct {
 	apiKey string
 	store  store.Store
@@ -59,7 +62,6 @@ func (api *APISteam) GetGames() error {
 		errWrapped := errors.Wrap(err, errWrapMessage)
 		return errWrapped
 	}
-	defer resp.Body.Close()
 
 	appIDs := []string{}
 
@@ -67,10 +69,33 @@ func (api *APISteam) GetGames() error {
 
 	maxAppsToLoad := 500
 
-	if games, err := api.store.Games().FindAll(); err != nil {
+	games, err := api.store.Games().FindAll()
+	if err != nil {
 		errWrapped := errors.Wrap(err, errWrapMessage)
 		return errWrapped
-	} else if len(games) >= maxAppsToLoad {
+	}
+
+	marketSteam, err := api.store.Markets().FindBy("name", "Steam")
+	if err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
+	}
+
+	for _, game := range games {
+		gameMarketPriceFound, err := api.store.GameMarketPrices().FindByGameMarket(game, marketSteam)
+		if err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			return errWrapped
+		}
+		gamesToUpdate[gameMarketPriceFound.MarketGameURL] = game
+	}
+
+	if err := api.UpdateGameMarketPrices(gamesToUpdate, marketSteam); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
+	}
+
+	if len(games) >= maxAppsToLoad {
 		fmt.Printf("Already downloaded %d games\n", len(games))
 		return nil
 	}
@@ -91,30 +116,20 @@ func (api *APISteam) GetGames() error {
 				continue
 			}
 
-			gameFound, err := api.store.Games().FindBy("name", gameNameClean)
-
-			if err != nil {
+			if _, err := api.store.Games().FindBy("name", gameNameClean); err != nil {
 				if errors.Cause(err) != store.ErrNotFound {
 					errWrapped := errors.Wrap(err, errWrapMessage)
 					return errWrapped
 				}
 
 				appIDs = append(appIDs, appID)
-			} else {
-				gamesToUpdate[appID] = gameFound
 			}
 		}
 	}
 
-	marketSteam, err := api.store.Markets().FindBy("name", "Steam")
-	if err != nil {
-		errWrapped := errors.Wrap(err, errWrapMessage)
-		return errWrapped
-	}
-
-	if err := api.UpdateGameMarketPrices(gamesToUpdate, marketSteam); err != nil {
-		errWrapped := errors.Wrap(err, errWrapMessage)
-		return errWrapped
+	if len(games) >= maxAppsToLoad {
+		fmt.Printf("Already downloaded %d games\n", len(games))
+		return nil
 	}
 
 	maxGameCount := 2000
@@ -138,21 +153,41 @@ func (api *APISteam) GetGames() error {
 	return nil
 }
 
+type updateSteamResponseAppDataPrice struct {
+	InitialFormatted string `json:"initial_formatted"`
+	FinalFormatted   string `json:"final_formatted"`
+	DiscountPercent  int    `json:"discount_percent"`
+}
+
+type updateSteamResponseAppData struct {
+	PriceOverview updateSteamResponseAppDataPrice `json:"price_overview"`
+}
+
+type updateSteamResponseApp struct {
+	Success bool                       `json:"success"`
+	Data    updateSteamResponseAppData `json:"data,omitempty"`
+}
+
+func (data *updateSteamResponseAppData) UnmarshalJSON(b []byte) error {
+	if len(b) == 0 {
+		return fmt.Errorf("no bytes to unmarshal")
+	}
+	switch b[0] {
+	case '[':
+		return nil
+	case '{':
+		var price map[string]updateSteamResponseAppDataPrice
+		if err := json.Unmarshal(b, &price); err != nil {
+			return err
+		}
+
+		data.PriceOverview = price["price_overview"]
+		return nil
+	}
+	return nil
+}
+
 func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game, marketSteam *model.Market) error {
-	type responseAppDataPrice struct {
-		InitialFormatted string `json:"initial_formatted,omitempty"`
-		FinalFormatted   string `json:"final_formatted,omitempty"`
-		DiscountPercent  int    `json:"discount_percent,omitempty"`
-	}
-
-	type responseAppData struct {
-		PriceOverview responseAppDataPrice `json:"price_overview,omitempty"`
-	}
-
-	type responseApp struct {
-		Success bool            `json:"success"`
-		Data    responseAppData `json:"data,omitempty"`
-	}
 
 	apiName := "Steam"
 	methodName := "UpdateGameMarketPrices"
@@ -167,6 +202,7 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 	offset := 0
 
 	counter := 0
+	counterFails := 0
 	fmt.Println("UpdatingPrices from Steam")
 
 	for {
@@ -182,7 +218,7 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 			break
 		}
 
-		url := fmt.Sprintf("http://store.steampowered.com/api/appdetails?appids=%s&finters=price_overview&cc=ru&l=en", strings.Join(currentAppIDs, ","))
+		url := fmt.Sprintf("http://store.steampowered.com/api/appdetails?appids=%s&filters=price_overview&cc=ru&l=en", strings.Join(currentAppIDs, ","))
 
 		resp, err := http.Get(url)
 		if err != nil {
@@ -190,16 +226,32 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 			return errWrapped
 		}
 
-		responseStruct := make(map[string]responseApp)
+		responseStruct := make(map[string]updateSteamResponseApp)
 
 		if err := json.NewDecoder(resp.Body).Decode(&responseStruct); err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			return errWrapped
 		}
-		defer resp.Body.Close()
+
+		// JSON DEBUG
+		// var responseStruct json.RawMessage
+		//
+		// if err := json.NewDecoder(resp.Body).Decode(&responseStruct); err != nil {
+		// 	errWrapped := errors.Wrap(err, errWrapMessage)
+		// 	return errWrapped
+		// }
+		// j, err := json.Marshal(&responseStruct)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// fmt.Println(string(j))
 
 		for _, appID := range currentAppIDs {
 			gameInfoRaw := responseStruct[appID]
+
+			if !gameInfoRaw.Success {
+				counterFails += 1
+			}
 
 			gameMarketPrice := &model.GameMarketPrice{
 				InitialValueFormatted: gameInfoRaw.Data.PriceOverview.InitialFormatted,
@@ -230,12 +282,12 @@ func (api *APISteam) UpdateGameMarketPrices(gamesToUpdate map[string]*model.Game
 				}
 			}
 
-			fmt.Printf("%d/%d\r", counter, len(gamesToUpdate))
 			counter += 1
+			fmt.Printf("%d/%d\r", counter, len(gamesToUpdate))
 		}
 	}
 
-	fmt.Printf("Successfully updated prices from Steam for all %d games\n", len(gamesToUpdate))
+	fmt.Printf("Successfully updated prices from Steam for all %d games\n", len(gamesToUpdate)-counterFails)
 
 	return nil
 }
@@ -292,7 +344,8 @@ func (api *APISteam) getSteamGameInfo(appID string, marketSteam *model.Market) e
 		errWrapped = errors.Wrap(err, fmt.Sprintf("AppID: %s", appID))
 		return errWrapped
 	}
-	defer resp.Body.Close()
+
+	// fmt.Printf("responseStruct: %+v\n\n", responseStruct)
 
 	gameInfoRaw := responseStruct[appID]
 	marketBlacklist := &model.MarketBlacklistItem{
@@ -340,6 +393,12 @@ func (api *APISteam) getSteamGameInfo(appID string, marketSteam *model.Market) e
 		return nil
 	}
 
+	gameNameClean := cleanGameName(gameInfoRaw.Data.Name)
+
+	if gameNameClean == "" {
+		return nil
+	}
+
 	publisher := &model.Publisher{
 		Name: gameInfoRaw.Data.Publishers[0],
 	}
@@ -358,26 +417,6 @@ func (api *APISteam) getSteamGameInfo(appID string, marketSteam *model.Market) e
 		publisher = publisherFound
 	}
 
-	for _, tag := range gameInfoRaw.Data.Genres {
-		tagNameClean := cleanTagName(tag.Description)
-
-		if _, err := api.store.Tags().FindBy("name", tagNameClean); err == nil {
-			continue
-		} else if errors.Cause(err) != store.ErrNotFound {
-			errWrapped := errors.Wrap(err, errWrapMessage)
-			return errWrapped
-		}
-
-		newTag := &model.Tag{
-			Name: tagNameClean,
-		}
-
-		if err := api.store.Tags().Create(newTag); err != nil {
-			errWrapped := errors.Wrap(err, errWrapMessage)
-			return errWrapped
-		}
-	}
-
 	game := &model.Game{
 		HeaderImageURL: gameInfoRaw.Data.HeaderImage,
 		Name:           cleanGameName(gameInfoRaw.Data.Name),
@@ -389,6 +428,38 @@ func (api *APISteam) getSteamGameInfo(appID string, marketSteam *model.Market) e
 	if err := api.store.Games().Create(game); err != nil {
 		errWrapped := errors.Wrap(err, errWrapMessage)
 		return errWrapped
+	}
+
+	for _, tag := range gameInfoRaw.Data.Genres {
+		tagNameClean := cleanTagName(tag.Description)
+
+		tag := &model.Tag{
+			Name: tagNameClean,
+		}
+
+		if tagFound, err := api.store.Tags().FindBy("name", tagNameClean); err == nil {
+			tag.ID = tagFound.ID
+		} else {
+			if errors.Cause(err) != store.ErrNotFound {
+				errWrapped := errors.Wrap(err, errWrapMessage)
+				return errWrapped
+			}
+
+			if err := api.store.Tags().Create(tag); err != nil {
+				errWrapped := errors.Wrap(err, errWrapMessage)
+				return errWrapped
+			}
+		}
+
+		gameTag := &model.GameTag{
+			Game: game,
+			Tag:  tag,
+		}
+
+		if err := api.store.GameTags().Create(gameTag); err != nil {
+			errWrapped := errors.Wrap(err, errWrapMessage)
+			return errWrapped
+		}
 	}
 
 	gameMarketPrice := &model.GameMarketPrice{

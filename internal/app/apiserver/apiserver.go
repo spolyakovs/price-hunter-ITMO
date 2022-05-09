@@ -12,7 +12,6 @@ import (
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
-	"golang.org/x/sync/errgroup"
 )
 
 // Migrate from wrapping errors to logging (Lexa vk)
@@ -56,21 +55,23 @@ func updateGames(config Config, st store.Store) error {
 	apiSteam := *apiStore.NewAPISteam(config.SteamAPIKey, st)
 	// apiEpicGames := *apiStore.NewAPIEpicGames(st)
 
-	g := new(errgroup.Group)
-
-	g.Go(func() error {
-		if err := apiSteam.GetGames(); err != nil {
-			return err
-		}
-		// if err := apiEpicGames.GetGames(); err != nil {
-		// 	return err
-		// }
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
+	if err := apiSteam.GetGames(); err != nil {
 		return err
 	}
+	// if err := apiEpicGames.GetGames(); err != nil {
+	// 	return err
+	// }
+
+	// g := new(errgroup.Group)
+	//
+	// g.Go(func() error {
+	//
+	// 	return nil
+	// })
+	//
+	// if err := g.Wait(); err != nil {
+	// 	return err
+	// }
 
 	// if err := apiSteam.UpdateGameMarketPrices(); err != nil {
 	// 	return err

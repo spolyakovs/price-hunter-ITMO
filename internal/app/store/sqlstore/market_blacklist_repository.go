@@ -51,7 +51,7 @@ func (marketBlacklistItemRepository *MarketBlacklistItemRepository) CheckByURL(m
 		"LEFT JOIN markets " +
 		"ON (market_blacklist.market_id = markets.id) " +
 
-		"WHERE market_blacklist.market_game_url = $1 LIMIT 1);"
+		"WHERE market_blacklist.market_game_url = $1);"
 
 	if err := marketBlacklistItemRepository.store.db.Get(
 		&result,

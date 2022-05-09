@@ -39,17 +39,17 @@ func (st *Store) fillTables() error {
 		return err
 	}
 
-	if err := st.fillTablePublishers(); err != nil {
-		return err
-	}
-
-	if err := st.fillTableGames(); err != nil {
-		return err
-	}
-
-	if err := st.fillTableTags(); err != nil {
-		return err
-	}
+	// if err := st.fillTablePublishers(); err != nil {
+	// 	return err
+	// }
+	//
+	// if err := st.fillTableGames(); err != nil {
+	// 	return err
+	// }
+	//
+	// if err := st.fillTableTags(); err != nil {
+	// 	return err
+	// }
 
 	if err := st.fillTableMarkets(); err != nil {
 		return err

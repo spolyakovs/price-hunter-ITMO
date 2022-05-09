@@ -151,7 +151,7 @@ func (st *Store) GameMarketPrices() store.GameMarketPriceRepository {
 }
 
 func (st *Store) MarketBlacklist() store.MarketBlacklistItemRepository {
-	if st.gameMarketPriceRepository != nil {
+	if st.marketBlacklistItemRepository != nil {
 		return st.marketBlacklistItemRepository
 	}
 
