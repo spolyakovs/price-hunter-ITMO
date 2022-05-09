@@ -65,6 +65,16 @@ func (api *APISteam) GetGames() error {
 
 	gamesToUpdate := make(map[string]*model.Game)
 
+	maxAppsToLoad := 500
+
+	if games, err := api.store.Games().FindAll(); err != nil {
+		errWrapped := errors.Wrap(err, errWrapMessage)
+		return errWrapped
+	} else if len(games) >= maxAppsToLoad {
+		fmt.Printf("Already downloaded %d games\n", len(games))
+		return nil
+	}
+
 	for _, app := range responseStruct.AppList.Apps {
 		gameNameClean := cleanGameName(app.Name)
 		appID := strconv.Itoa(app.AppID)
@@ -109,7 +119,7 @@ func (api *APISteam) GetGames() error {
 		return errWrapped
 	}
 
-	maxGameCount := 1000
+	maxGameCount := 2000
 	if maxGameCount > len(appIDs) {
 		maxGameCount = len(appIDs)
 	}

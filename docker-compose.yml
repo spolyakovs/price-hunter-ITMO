@@ -43,7 +43,7 @@ services:
         condition: service_healthy
     build:
       context: .
-    image: spolyakovs/price-hunter:v0.1-empty
+    image: spolyakovs/price-hunter:v0.2
     ports:
       - "8000:8000"
     networks:

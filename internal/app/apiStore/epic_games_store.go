@@ -24,6 +24,6 @@ func expectedEpicGamesURL(gameName string) string {
 
 // TODO: write APIEpicGames.GetGames()
 func (api *APIEpicGames) GetGames() error {
-	// TODO: example URL in Postman, need to choose correct one (example with "The Long Dark")
+	// TODO: example URL in Postman, need to choose correct one (example with "The Long Dark"), check what happens when game isn't in Store
 	return nil
 }
