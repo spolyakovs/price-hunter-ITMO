@@ -19,7 +19,8 @@ func (marketRepository *MarketRepository) Create(market *model.Market) error {
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO markets (name) VALUES ($1) RETURNING id;"
+	createQuery := "INSERT INTO markets (name) VALUES ($1) " +
+		"ON CONFLICT(name) DO UPDATE SET name = EXCLUDED.name RETURNING id;"
 
 	if err := marketRepository.store.db.Get(
 		&market.ID,

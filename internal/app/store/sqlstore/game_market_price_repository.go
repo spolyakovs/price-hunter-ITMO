@@ -19,7 +19,8 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Create(gameMarketPri
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO game_market_prices (initial_value_formatted, final_value_formatted, discount_percent, market_game_url, game_id, market_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;"
+	createQuery := "INSERT INTO game_market_prices (initial_value_formatted, final_value_formatted, discount_percent, market_game_url, game_id, market_id) " +
+		"VALUES ($1, $2, $3, $4, $5, $6) RETURNING id;"
 
 	if err := gameMarketPriceRepository.store.db.Get(
 		&gameMarketPrice.ID,

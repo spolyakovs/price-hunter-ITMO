@@ -21,7 +21,8 @@ func (gameRepository *GameRepository) Create(game *model.Game) error {
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO games (header_image_url, name, description, release_date, publisher_id) VALUES ($1, $2, $3, TO_DATE($4, 'dd.MM.YYYY'), $5) RETURNING id;"
+	createQuery := "INSERT INTO games (header_image_url, name, description, release_date, publisher_id) VALUES ($1, $2, $3, TO_DATE($4, 'dd.MM.YYYY'), $5) " +
+		"ON CONFLICT(name) DO UPDATE SET name = EXCLUDED.name RETURNING id;"
 
 	if err := gameRepository.store.db.Get(
 		&game.ID,

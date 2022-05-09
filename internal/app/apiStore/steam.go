@@ -112,8 +112,6 @@ func (api *APISteam) GetGames() error {
 		return errWrapped
 	}
 
-	fmt.Println(len(gamesToUpdate))
-
 	if err := api.UpdateGameMarketPrices(gamesToUpdate, marketSteam); err != nil {
 		errWrapped := errors.Wrap(err, errWrapMessage)
 		return errWrapped

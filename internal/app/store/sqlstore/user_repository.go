@@ -28,7 +28,8 @@ func (userRepository *UserRepository) Create(user *model.User) error {
 		return errors.Wrap(err, errWrapMessage)
 	}
 
-	createQuery := "INSERT INTO users (username, email, encrypted_password) VALUES ($1, $2, $3) RETURNING id;"
+	createQuery := "INSERT INTO users (username, email, encrypted_password) VALUES ($1, $2, $3) " +
+		"ON CONFLICT(username) DO UPDATE SET username = EXCLUDED.username RETURNING id;"
 
 	if err := userRepository.store.db.Get(
 		&user.ID,

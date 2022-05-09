@@ -98,7 +98,7 @@ func createTablePublishers(tx *sqlx.Tx) error {
 
 	createTablePublishersQuery := "CREATE TABLE IF NOT EXISTS publishers (" +
 		"id bigserial NOT NULL PRIMARY KEY," +
-		"name varchar NOT NULL );"
+		"name varchar NOT NULL UNIQUE );"
 
 	if _, err := tx.Exec(createTablePublishersQuery); err != nil {
 		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
@@ -116,7 +116,7 @@ func createTableGames(tx *sqlx.Tx) error {
 	createTableGamesQuery := "CREATE TABLE IF NOT EXISTS games (" +
 		"id bigserial NOT NULL PRIMARY KEY," +
 		"header_image_url varchar NOT NULL," +
-		"name varchar NOT NULL," +
+		"name varchar NOT NULL UNIQUE," +
 		"description varchar NOT NULL," +
 		"release_date date NOT NULL," +
 		"publisher_id bigserial NOT NULL REFERENCES publishers (id) ON DELETE CASCADE );"
@@ -136,7 +136,7 @@ func createTableTags(tx *sqlx.Tx) error {
 
 	createTableTagsQuery := "CREATE TABLE IF NOT EXISTS tags (" +
 		"id bigserial NOT NULL PRIMARY KEY," +
-		"name varchar NOT NULL );"
+		"name varchar NOT NULL UNIQUE );"
 
 	if _, err := tx.Exec(createTableTagsQuery); err != nil {
 		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())
@@ -153,7 +153,7 @@ func createTableMarkets(tx *sqlx.Tx) error {
 
 	createTableMarketsQuery := "CREATE TABLE IF NOT EXISTS markets (" +
 		"id bigserial NOT NULL PRIMARY KEY," +
-		"name varchar NOT NULL );"
+		"name varchar NOT NULL UNIQUE );"
 
 	if _, err := tx.Exec(createTableMarketsQuery); err != nil {
 		errWrapped := errors.Wrap(store.ErrUnknownSQL, err.Error())

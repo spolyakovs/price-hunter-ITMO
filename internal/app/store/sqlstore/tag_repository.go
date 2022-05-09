@@ -19,7 +19,8 @@ func (tagRepository *TagRepository) Create(tag *model.Tag) error {
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO tags (name) VALUES ($1) RETURNING id;"
+	createQuery := "INSERT INTO tags (name) VALUES ($1) " +
+		"ON CONFLICT(name) DO UPDATE SET name = EXCLUDED.name RETURNING id;"
 
 	if err := tagRepository.store.db.Get(
 		&tag.ID,

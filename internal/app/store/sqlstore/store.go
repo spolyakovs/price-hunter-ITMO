@@ -47,9 +47,9 @@ func New(db *sqlx.DB) (*Store, error) {
 		return nil, err
 	}
 
-	// if err := newStore.fillTables(); err != nil {
-	// 	return nil, err
-	// }
+	if err := newStore.fillTables(); err != nil {
+		return nil, err
+	}
 
 	return newStore, nil
 }

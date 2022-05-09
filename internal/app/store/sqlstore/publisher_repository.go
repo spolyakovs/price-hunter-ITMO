@@ -19,7 +19,8 @@ func (publisherRepository *PublisherRepository) Create(publisher *model.Publishe
 	methodName := "Create"
 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
 
-	createQuery := "INSERT INTO publishers (name) VALUES ($1) RETURNING id;"
+	createQuery := "INSERT INTO publishers (name) VALUES ($1) " +
+		"ON CONFLICT(name) DO UPDATE SET name = EXCLUDED.name RETURNING id;"
 
 	if err := publisherRepository.store.db.Get(
 		&publisher.ID,
