@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -22,12 +23,15 @@ func NewAPIEpicGames(st store.Store) *APIEpicGames {
 }
 
 func expectedEpicGamesURL(gameName string) string {
+	var reOther = regexp.MustCompile(`[^a-z ]`)
+
 	gameURL := strings.ToLower(gameName)
+	gameURL = reOther.ReplaceAllString(gameURL, "")
 	gameURL = strings.Replace(gameURL, " ", "-", -1)
+
 	return gameURL
 }
 
-// TODO: write APIEpicGames.GetGames()
 func (api *APIEpicGames) GetGames() error {
 	type responseDataCatalogStoreItemPriceTotal struct {
 		FinalValue      int `json:"discountPrice"`
@@ -38,12 +42,12 @@ func (api *APIEpicGames) GetGames() error {
 		TotalPrice responseDataCatalogStoreItemPriceTotal `json:"totalPrice"`
 	}
 	type responseDataCatalogStoreItem struct {
-		ProductSlug string                            `json:"productSlug,omitempty"`
+		ProductSlug string                            `json:"productSlug"`
 		Title       string                            `json:"title"`
 		Price       responseDataCatalogStoreItemPrice `json:"price"`
 	}
 	type responseDataCatalogStore struct {
-		Elements []responseDataCatalogStoreItem `json:"elements"`
+		Elements []responseDataCatalogStoreItem `json:"elements,omitempty"`
 	}
 	type responseDataCatalog struct {
 		Store responseDataCatalogStore `json:"searchStore"`
@@ -65,20 +69,23 @@ func (api *APIEpicGames) GetGames() error {
 		return errWrapped
 	}
 
+	counter := 0
+	fmt.Println("Getting prices from EpicGames")
+
 	for _, game := range games {
 		url := fmt.Sprintf("https://www.epicgames.com/graphql?query="+
-			"{Catalog {searchStore(keywords: \"%s\", country: \"RU\", locale: \"US\", count: 1) "+
+			"{Catalog {searchStore(keywords: \"%s\", country: \"RU\", locale: \"US\", count: 1)"+
 			"{elements {"+
 			"id productSlug namespace title description price(country: \"RU\") "+
 			"{totalPrice{discountPrice originalPrice discount } } } } } }", expectedEpicGamesURL(game.Name))
+
+		url = strings.Replace(url, " ", "%20", -1)
 
 		resp, err := http.Get(url)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			return errWrapped
 		}
-
-		fmt.Println(expectedEpicGamesURL(game.Name))
 
 		responseStruct := &response{}
 
@@ -87,9 +94,33 @@ func (api *APIEpicGames) GetGames() error {
 			return errWrapped
 		}
 
+		// JSON DEBUG
+		// var responseStruct json.RawMessage
+		//
+		// fmt.Printf("%+v\n\n", resp)
+		//
+		// if err := json.NewDecoder(resp.Body).Decode(&responseStruct); err != nil {
+		// 	errWrapped := errors.Wrap(err, errWrapMessage)
+		// 	panic(errWrapped)
+		// }
+		// j, err := json.Marshal(&responseStruct)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		// fmt.Println(string(j))
+		// break
+
+		if len(responseStruct.Data.Catalog.Store.Elements) == 0 {
+			continue
+		}
+
 		gameDataRaw := responseStruct.Data.Catalog.Store.Elements[0]
 
 		if gameDataRaw.Title != game.Name {
+			continue
+		}
+
+		if gameDataRaw.ProductSlug == "" {
 			continue
 		}
 
@@ -100,14 +131,20 @@ func (api *APIEpicGames) GetGames() error {
 			return errWrapped
 		}
 
-		priceInitialFormatted := fmt.Sprintf("%d руб.", gameDataRaw.Price.TotalPrice.InitialValue/100)
 		priceFinalFormatted := fmt.Sprintf("%d руб.", gameDataRaw.Price.TotalPrice.FinalValue/100)
+
+		priceInitialFormatted := fmt.Sprintf("%d руб.", gameDataRaw.Price.TotalPrice.InitialValue/100)
+		if priceFinalFormatted == priceInitialFormatted {
+			priceInitialFormatted = ""
+		}
+
+		marketGameURL := strings.Split(gameDataRaw.ProductSlug, "/")[0]
 
 		gameMarketPrice := &model.GameMarketPrice{
 			InitialValueFormatted: priceInitialFormatted,
 			FinalValueFormatted:   priceFinalFormatted,
 			DiscountPercent:       gameDataRaw.Price.TotalPrice.DiscountPercent,
-			MarketGameURL:         gameDataRaw.ProductSlug,
+			MarketGameURL:         marketGameURL,
 			Game:                  game,
 			Market:                marketEpicGames,
 		}
@@ -131,8 +168,11 @@ func (api *APIEpicGames) GetGames() error {
 				return errWrapped
 			}
 		}
+
+		counter += 1
 	}
 
-	// TODO: example URL in Postman, need to choose correct one (example with "The Long Dark"), check what happens when game isn't in Store
+	fmt.Printf("Successfully got prices from EpicGames for all %d games\n", counter)
+
 	return nil
 }
