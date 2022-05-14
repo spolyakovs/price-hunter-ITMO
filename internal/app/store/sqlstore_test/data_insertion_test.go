@@ -53,10 +53,6 @@ func insertTestData(st *sqlstore.Store) error {
 		return err
 	}
 
-	if err := insertTestDataUserGameFavourites(st); err != nil {
-		return err
-	}
-
 	if err := insertTestDataGameMarketPrices(st); err != nil {
 		return err
 	}
