@@ -1,4 +1,4 @@
-package sqlstore
+package sqlstore_test
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
 )
 
 var (
@@ -19,75 +20,51 @@ var (
 	gameMarketPrices   []*model.GameMarketPrice
 )
 
-var tableNames = []string{
-	"game_market_prices",
-	"game_tags",
-	"user_game_favourites",
-	"markets",
-	"tags",
-	"games",
-	"publishers",
-	"users",
-}
-
-func (st *Store) fillTables() error {
-	// if err := st.clearTables(tableNames); err != nil {
-	// 	return err
-	// }
-
-	if err := st.fillTableUsers(); err != nil {
+func insertTestData(st *sqlstore.Store) error {
+	if err := st.ClearTables(); err != nil {
 		return err
 	}
 
-	// if err := st.fillTablePublishers(); err != nil {
-	// 	return err
-	// }
-	//
-	// if err := st.fillTableGames(); err != nil {
-	// 	return err
-	// }
-	//
-	// if err := st.fillTableTags(); err != nil {
-	// 	return err
-	// }
-
-	if err := st.fillTableMarkets(); err != nil {
+	if err := insertTestDataUsers(st); err != nil {
 		return err
 	}
 
-	// if err := st.fillTableUserGameFavourites(); err != nil {
-	// 	return err
-	// }
-	//
-	// if err := st.fillTableGameTags(); err != nil {
-	// 	return err
-	// }
-	//
-	// if err := st.fillTableUserGameFavourites(); err != nil {
-	// 	return err
-	// }
-	//
-	// if err := st.fillTableGameMarketPrices(); err != nil {
-	// 	return err
-	// }
+	if err := insertTestDataPublishers(st); err != nil {
+		return err
+	}
 
-	return nil
-}
+	if err := insertTestDataGames(st); err != nil {
+		return err
+	}
 
-func (st *Store) clearTables(tableNames []string) error {
-	errWrapMessage := "Clearing tables to insert test data"
+	if err := insertTestDataTags(st); err != nil {
+		return err
+	}
 
-	for _, tableName := range tableNames {
-		truncateQuery := fmt.Sprintf("TRUNCATE %s RESTART IDENTITY CASCADE;", tableName)
-		if _, err := st.db.Exec(truncateQuery); err != nil {
-			return errors.Wrap(err, errWrapMessage)
-		}
+	if err := insertTestDataMarkets(st); err != nil {
+		return err
+	}
+
+	if err := insertTestDataUserGameFavourites(st); err != nil {
+		return err
+	}
+
+	if err := insertTestDataGameTags(st); err != nil {
+		return err
+	}
+
+	if err := insertTestDataUserGameFavourites(st); err != nil {
+		return err
+	}
+
+	if err := insertTestDataGameMarketPrices(st); err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func (st *Store) fillTableUsers() error {
+func insertTestDataUsers(st *sqlstore.Store) error {
 	tableName := "Users"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
@@ -108,7 +85,7 @@ func (st *Store) fillTableUsers() error {
 	return nil
 }
 
-func (st *Store) fillTablePublishers() error {
+func insertTestDataPublishers(st *sqlstore.Store) error {
 	tableName := "Publishers"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
@@ -141,7 +118,7 @@ func (st *Store) fillTablePublishers() error {
 	return nil
 }
 
-func (st *Store) fillTableGames() error {
+func insertTestDataGames(st *sqlstore.Store) error {
 	tableName := "Games"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
@@ -194,7 +171,7 @@ func (st *Store) fillTableGames() error {
 	return nil
 }
 
-func (st *Store) fillTableTags() error {
+func insertTestDataTags(st *sqlstore.Store) error {
 	tableName := "Tags"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
@@ -247,7 +224,7 @@ func (st *Store) fillTableTags() error {
 	return nil
 }
 
-func (st *Store) fillTableMarkets() error {
+func insertTestDataMarkets(st *sqlstore.Store) error {
 	tableName := "Markets"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
@@ -272,7 +249,7 @@ func (st *Store) fillTableMarkets() error {
 	return nil
 }
 
-func (st *Store) fillTableUserGameFavourites() error {
+func insertTestDataUserGameFavourites(st *sqlstore.Store) error {
 	tableName := "UserGameFavourites"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
@@ -294,7 +271,7 @@ func (st *Store) fillTableUserGameFavourites() error {
 	return nil
 }
 
-func (st *Store) fillTableGameTags() error {
+func insertTestDataGameTags(st *sqlstore.Store) error {
 	tableName := "GameTags"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
@@ -387,7 +364,7 @@ func (st *Store) fillTableGameTags() error {
 	return nil
 }
 
-func (st *Store) fillTableGameMarketPrices() error {
+func insertTestDataGameMarketPrices(st *sqlstore.Store) error {
 	tableName := "GameMarketPrices"
 	errWrapMessage := fmt.Sprintf(store.ErrTestDataInsertionMessageFormat, tableName)
 
