@@ -34,11 +34,6 @@ type Store struct {
 }
 
 func New(db *sqlx.DB) (*Store, error) {
-	// points after 10th place are not awarded
-	for i := 11; i <= 20; i++ {
-		pointsByPlace[i] = 0
-	}
-
 	newStore := &Store{
 		db: db,
 	}
@@ -47,7 +42,7 @@ func New(db *sqlx.DB) (*Store, error) {
 		return nil, err
 	}
 
-	if err := newStore.fillTables(); err != nil {
+	if err := newStore.insertDataMarkets(); err != nil {
 		return nil, err
 	}
 
