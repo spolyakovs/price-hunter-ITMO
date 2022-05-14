@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenutils"
 )
 
