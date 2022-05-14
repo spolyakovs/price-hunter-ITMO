@@ -1,34 +1,14 @@
 package tokenutils_test
 
 import (
-	"fmt"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/pkg/errors"
 
-	"github.com/BurntSushi/toml"
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/apiserver"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenutils"
 )
-
-func setupRedis() error {
-	config := apiserver.NewConfig()
-
-	if _, err := toml.DecodeFile("../../../configs/local_test.toml", config); err != nil {
-		return fmt.Errorf("Couldn't get config:\n\t%s", err.Error())
-	}
-
-	os.Setenv("TOKEN_SECRET", config.TokenSecret)
-
-	if err := tokenutils.SetupRedis(config.RedisAddr); err != nil {
-		return fmt.Errorf("Couldn't setup Redis:\n\t%s", err.Error())
-	}
-
-	return nil
-}
 
 func TestCreateDeleteTokens(t *testing.T) {
 	if err := setupRedis(); err != nil {
