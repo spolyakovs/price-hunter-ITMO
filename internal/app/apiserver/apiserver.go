@@ -8,10 +8,10 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/apiStore"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/apistore"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenutils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -21,7 +21,7 @@ func Start(config *Config) error {
 	startLogger := logrus.New()
 
 	startLogger.Info("Creating database")
-	db, err := newDB(*config)
+	db, err := NewDB(*config)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func Start(config *Config) error {
 	os.Setenv("TOKEN_SECRET", config.TokenSecret)
 
 	startLogger.Info("Configuring Redis")
-	if err := tokenUtils.SetupRedis(config.RedisAddr); err != nil {
+	if err := tokenutils.SetupRedis(config.RedisAddr); err != nil {
 		return err
 	}
 
@@ -53,9 +53,9 @@ func Start(config *Config) error {
 }
 
 func updateGames(config Config, st store.Store) error {
-	apiSteam := *apiStore.NewAPISteam(config.SteamAPIKey, st)
-	apiEpicGames := *apiStore.NewAPIEpicGames(st)
-	apiGOG := *apiStore.NewAPIGOG(st)
+	apiSteam := *apistore.NewAPISteam(config.SteamAPIKey, st)
+	apiEpicGames := *apistore.NewAPIEpicGames(st)
+	apiGOG := *apistore.NewAPIGOG(st)
 
 	if err := apiSteam.GetGames(); err != nil {
 		return err
@@ -87,7 +87,7 @@ func updateGames(config Config, st store.Store) error {
 	return nil
 }
 
-func newDB(config Config) (*sqlx.DB, error) {
+func NewDB(config Config) (*sqlx.DB, error) {
 	dbURL := fmt.Sprintf("host=%s dbname=%s user=%s password=%s sslmode=%s",
 		config.DatabaseHost, config.DatabaseDBName, config.DatabaseUser, config.DatabasePassword, config.DatabaseSSLMode)
 	db, err := sqlx.Open("postgres", dbURL)

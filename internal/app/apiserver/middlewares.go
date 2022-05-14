@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenutils"
 
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -58,14 +58,14 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 		methodName := "AuthenticateUser"
 		errWrapMessage := fmt.Sprintf(errMiddlewareMessageFormat, methodName)
 
-		tokenString, err := tokenUtils.ExtractToken(req)
+		tokenString, err := tokenutils.ExtractToken(req)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenNotProvided:
+			case tokenutils.ErrTokenNotProvided:
 				server.error(writer, req, http.StatusUnauthorized, errWrapped)
-			case tokenUtils.ErrTokenWrongFormat:
+			case tokenutils.ErrTokenWrongFormat:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
@@ -76,14 +76,14 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 			return
 		}
 
-		tokenDetails, err := tokenUtils.ExtractTokenMetadata(tokenString)
+		tokenDetails, err := tokenutils.ExtractTokenMetadata(tokenString)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenDamaged:
+			case tokenutils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
-			case tokenUtils.ErrTokenExpiredOrDeleted:
+			case tokenutils.ErrTokenExpiredOrDeleted:
 				server.error(writer, req, http.StatusForbidden, errWrapped)
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
@@ -93,12 +93,12 @@ func (server *server) authenticateUser(next http.Handler) http.Handler {
 			return
 		}
 
-		userId, err := tokenUtils.FetchAuth(tokenDetails)
+		userId, err := tokenutils.FetchAuth(tokenDetails)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenExpiredOrDeleted:
+			case tokenutils.ErrTokenExpiredOrDeleted:
 				server.error(writer, req, http.StatusForbidden, errWrapped)
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis

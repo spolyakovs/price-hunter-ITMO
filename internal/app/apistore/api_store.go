@@ -1,4 +1,4 @@
-package apiStore
+package apistore
 
 type APIStore interface {
 	GetGames() error

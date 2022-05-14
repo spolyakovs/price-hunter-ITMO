@@ -1,4 +1,4 @@
-package apiStore
+package apistore
 
 import (
 	"regexp"

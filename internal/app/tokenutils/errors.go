@@ -1,4 +1,4 @@
-package tokenUtils
+package tokenutils
 
 import "github.com/pkg/errors"
 

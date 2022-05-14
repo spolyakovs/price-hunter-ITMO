@@ -9,7 +9,7 @@ import (
 
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/model"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
-	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenUtils"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenutils"
 )
 
 // TODO: add comments
@@ -130,7 +130,7 @@ func (server *server) handleLogin() http.HandlerFunc {
 			return
 		}
 
-		tokenDetails, err := tokenUtils.CreateTokens(user.ID)
+		tokenDetails, err := tokenutils.CreateTokens(user.ID)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
@@ -152,14 +152,14 @@ func (server *server) handleLogout() http.HandlerFunc {
 		methodName := "Logout"
 		errWrapMessage := fmt.Sprintf(errHandlerMessageFormat, methodName)
 
-		tokenString, err := tokenUtils.ExtractToken(req)
+		tokenString, err := tokenutils.ExtractToken(req)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenNotProvided:
+			case tokenutils.ErrTokenNotProvided:
 				server.error(writer, req, http.StatusUnauthorized, errWrapped)
-			case tokenUtils.ErrTokenWrongFormat:
+			case tokenutils.ErrTokenWrongFormat:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
@@ -170,14 +170,14 @@ func (server *server) handleLogout() http.HandlerFunc {
 			return
 		}
 
-		tokenDetails, err := tokenUtils.ExtractTokenMetadata(tokenString)
+		tokenDetails, err := tokenutils.ExtractTokenMetadata(tokenString)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenDamaged:
+			case tokenutils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
-			case tokenUtils.ErrTokenExpiredOrDeleted:
+			case tokenutils.ErrTokenExpiredOrDeleted:
 				server.respond(writer, req, http.StatusOK, map[string]string{})
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
@@ -187,7 +187,7 @@ func (server *server) handleLogout() http.HandlerFunc {
 			return
 		}
 
-		if err := tokenUtils.DeleteAuth(tokenDetails.Uuid); err != nil {
+		if err := tokenutils.DeleteAuth(tokenDetails.Uuid); err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
@@ -216,14 +216,14 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 		}
 
 		// Extract, validate and delete access token
-		tokenString, err := tokenUtils.ExtractToken(req)
+		tokenString, err := tokenutils.ExtractToken(req)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenNotProvided:
+			case tokenutils.ErrTokenNotProvided:
 				server.error(writer, req, http.StatusUnauthorized, errWrapped)
-			case tokenUtils.ErrTokenWrongFormat:
+			case tokenutils.ErrTokenWrongFormat:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
@@ -235,15 +235,15 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 		}
 
 		// Access token must be valid, but expired
-		accessTokenDetails, err := tokenUtils.ExtractTokenMetadata(tokenString)
+		accessTokenDetails, err := tokenutils.ExtractTokenMetadata(tokenString)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenDamaged:
+			case tokenutils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
 				return
-			case tokenUtils.ErrTokenExpiredOrDeleted:
+			case tokenutils.ErrTokenExpiredOrDeleted:
 				break
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
@@ -252,7 +252,7 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 				return
 			}
 		} else {
-			if err := tokenUtils.DeleteAuth(accessTokenDetails.Uuid); err != nil {
+			if err := tokenutils.DeleteAuth(accessTokenDetails.Uuid); err != nil {
 				errWrapped := errors.Wrap(err, errWrapMessage)
 				server.log(errWrapped)
 				server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
@@ -260,14 +260,14 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 			}
 		}
 
-		refreshTokenDetails, err := tokenUtils.ExtractTokenMetadata(requestStruct.RefreshToken)
+		refreshTokenDetails, err := tokenutils.ExtractTokenMetadata(requestStruct.RefreshToken)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 
 			switch errors.Cause(err) {
-			case tokenUtils.ErrTokenDamaged:
+			case tokenutils.ErrTokenDamaged:
 				server.error(writer, req, http.StatusBadRequest, errWrapped)
-			case tokenUtils.ErrTokenExpiredOrDeleted:
+			case tokenutils.ErrTokenExpiredOrDeleted:
 				server.error(writer, req, http.StatusForbidden, errWrapped)
 			default:
 				// Mostly TokenUtils.ErrInternal, probably something with Redis
@@ -278,7 +278,7 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 			return
 		}
 
-		if err := tokenUtils.DeleteAuth(refreshTokenDetails.Uuid); err != nil {
+		if err := tokenutils.DeleteAuth(refreshTokenDetails.Uuid); err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
@@ -286,7 +286,7 @@ func (server *server) handleRefreshToken() http.HandlerFunc {
 		}
 
 		// Creating new pair of tokens
-		tokenDetails, err := tokenUtils.CreateTokens(refreshTokenDetails.UserId)
+		tokenDetails, err := tokenutils.CreateTokens(refreshTokenDetails.UserId)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
@@ -354,7 +354,7 @@ func (server *server) handleUsersChangeEmail() http.HandlerFunc {
 			return
 		}
 
-		if err := tokenUtils.DeleteAllAuths(user.ID); err != nil {
+		if err := tokenutils.DeleteAllAuths(user.ID); err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
@@ -362,7 +362,7 @@ func (server *server) handleUsersChangeEmail() http.HandlerFunc {
 		}
 
 		// Creating new pair of tokens
-		tokenDetails, err := tokenUtils.CreateTokens(user.ID)
+		tokenDetails, err := tokenutils.CreateTokens(user.ID)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
@@ -416,7 +416,7 @@ func (server *server) handleUsersChangePassword() http.HandlerFunc {
 			return
 		}
 
-		if err := tokenUtils.DeleteAllAuths(user.ID); err != nil {
+		if err := tokenutils.DeleteAllAuths(user.ID); err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)
 			server.error(writer, req, http.StatusInternalServerError, errSomethingWentWrong)
@@ -424,7 +424,7 @@ func (server *server) handleUsersChangePassword() http.HandlerFunc {
 		}
 
 		// Creating new pair of tokens
-		tokenDetails, err := tokenUtils.CreateTokens(user.ID)
+		tokenDetails, err := tokenutils.CreateTokens(user.ID)
 		if err != nil {
 			errWrapped := errors.Wrap(err, errWrapMessage)
 			server.log(errWrapped)

@@ -1,4 +1,4 @@
-package apiStore
+package apistore
 
 var (
 // ErrAppSkiped = errors.New("App skipped")

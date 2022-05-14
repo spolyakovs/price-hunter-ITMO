@@ -18,5 +18,13 @@ func NewConfig() *Config {
 	return &Config{
 		BindAddr: ":8080",
 		LogLevel: "debug",
+		// DatabaseHost: "",
+		// DatabaseDBName: "",
+		// DatabaseUser: "",
+		// DatabasePassword: "",
+		// DatabaseSSLMode: "",
+		// RedisAddr: "",
+		// TokenSecret: "",
+		// SteamAPIKey: "",
 	}
 }

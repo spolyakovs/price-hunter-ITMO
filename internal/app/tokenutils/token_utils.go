@@ -1,4 +1,4 @@
-package tokenUtils
+package tokenutils
 
 import (
 	"fmt"
@@ -130,54 +130,54 @@ func verifyToken(tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
-// Probably unnecessary cause it doubles part of ExtractTokenMetadata
-func IsValid(tokenString string) error {
-	methodName := "IsValid"
-	errWrapMessage := fmt.Sprintf(errTokenUtilsMessageFormat, methodName)
-
-	token, err := verifyToken(tokenString)
-	if err != nil {
-		errWrapped := errors.Wrap(err, errWrapMessage)
-		return errWrapped
-	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenClaimsMessage)
-		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", token.Claims))
-		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
-		return errWrapped
-	}
-
-	if !token.Valid {
-		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenValidationMessage)
-		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
-		return errWrapped
-	}
-
-	uuid, ok := claims["uuid"].(string)
-	if !ok {
-		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenUUIDMessage)
-		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", claims))
-		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
-		return errWrapped
-	}
-
-	count, err := redisStore.Exists(uuid).Result()
-	if err != nil {
-		errWrapped := errors.Wrap(ErrInternal, errRedisMessage)
-		errWrapped = errors.Wrap(errWrapped, err.Error())
-		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
-		return errWrapped
-	}
-
-	if count == 0 {
-		errWrapped := errors.Wrap(ErrTokenExpiredOrDeleted, errWrapMessage)
-		return errWrapped
-	}
-
-	return nil
-}
+// Unnecessary cause it doubles part of ExtractTokenMetadata
+// func IsValid(tokenString string) error {
+// 	methodName := "IsValid"
+// 	errWrapMessage := fmt.Sprintf(errTokenUtilsMessageFormat, methodName)
+//
+// 	token, err := verifyToken(tokenString)
+// 	if err != nil {
+// 		errWrapped := errors.Wrap(err, errWrapMessage)
+// 		return errWrapped
+// 	}
+//
+// 	claims, ok := token.Claims.(jwt.MapClaims)
+// 	if !ok {
+// 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenClaimsMessage)
+// 		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", token.Claims))
+// 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+// 		return errWrapped
+// 	}
+//
+// 	if !token.Valid {
+// 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenValidationMessage)
+// 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+// 		return errWrapped
+// 	}
+//
+// 	uuid, ok := claims["uuid"].(string)
+// 	if !ok {
+// 		errWrapped := errors.Wrap(ErrTokenDamaged, errTokenUUIDMessage)
+// 		errWrapped = errors.Wrap(errWrapped, fmt.Sprintf("Claims: %+v", claims))
+// 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+// 		return errWrapped
+// 	}
+//
+// 	count, err := redisStore.Exists(uuid).Result()
+// 	if err != nil {
+// 		errWrapped := errors.Wrap(ErrInternal, errRedisMessage)
+// 		errWrapped = errors.Wrap(errWrapped, err.Error())
+// 		errWrapped = errors.Wrap(errWrapped, errWrapMessage)
+// 		return errWrapped
+// 	}
+//
+// 	if count == 0 {
+// 		errWrapped := errors.Wrap(ErrTokenExpiredOrDeleted, errWrapMessage)
+// 		return errWrapped
+// 	}
+//
+// 	return nil
+// }
 
 type TokenDetails struct {
 	Uuid   string
