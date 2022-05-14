@@ -10,11 +10,6 @@ import (
 )
 
 func TestCreateDeleteTokens(t *testing.T) {
-	if err := setupRedis(); err != nil {
-		t.Error(err.Error())
-		return
-	}
-
 	var userid uint64 = 1
 
 	testTokenPairDetails, err := tokenutils.CreateTokens(userid)
@@ -80,11 +75,6 @@ func TestExtractToken(t *testing.T) {
 }
 
 func TestExtractTokenMetadata(t *testing.T) {
-	if err := setupRedis(); err != nil {
-		t.Error(err.Error())
-		return
-	}
-
 	if _, err := tokenutils.ExtractTokenMetadata("IncorrectToken"); err == nil {
 		t.Errorf("Validated incorrect token (IncorrectToken)")
 	} else {
@@ -150,9 +140,6 @@ func TestExtractTokenMetadata(t *testing.T) {
 }
 
 func TestFetchAuth(t *testing.T) {
-	if err := setupRedis(); err != nil {
-		t.Error(err.Error())
-	}
 	tokenDetailsncorrect := &tokenutils.TokenDetails{
 		Uuid:   "IncorrectUUID",
 		UserId: 0,
@@ -190,10 +177,6 @@ func TestFetchAuth(t *testing.T) {
 }
 
 func TestDeleteAllAuths(t *testing.T) {
-	if err := setupRedis(); err != nil {
-		t.Error(err.Error())
-	}
-
 	var userid uint64 = 1
 
 	testTokenPairDetails, err := tokenutils.CreateTokens(userid)

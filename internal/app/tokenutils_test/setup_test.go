@@ -3,24 +3,27 @@ package tokenutils_test
 import (
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/BurntSushi/toml"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/apiserver"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/tokenutils"
 )
 
-func setupRedis() error {
+func TestMain(m *testing.M) {
 	config := apiserver.NewConfig()
 
 	if _, err := toml.DecodeFile("../../../configs/local_test.toml", config); err != nil {
-		return fmt.Errorf("Couldn't get config:\n\t%s", err.Error())
+		fmt.Printf("Couldn't get config:\n\t%s", err.Error())
+		return
 	}
 
 	os.Setenv("TOKEN_SECRET", config.TokenSecret)
 
 	if err := tokenutils.SetupRedis(config.RedisAddr); err != nil {
-		return fmt.Errorf("Couldn't setup Redis:\n\t%s", err.Error())
+		fmt.Printf("Couldn't setup Redis:\n\t%s", err.Error())
+		return
 	}
 
-	return nil
+	os.Exit(m.Run())
 }
