@@ -32,7 +32,6 @@ func expectedGOGURL(gameName string) string {
 	return gameURL
 }
 
-// TODO: write APIGOG.GetGames()
 func (api *APIGOG) GetGames() error {
 
 	type responseProductPrice struct {

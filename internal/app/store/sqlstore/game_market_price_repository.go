@@ -43,7 +43,6 @@ func (gameMarketPriceRepository *GameMarketPriceRepository) Find(id uint64) (*mo
 }
 
 // TODO: move this func as Find(id)
-// TODO: test especially this (gameMarketPrice -> game -> publisher)
 func (gameMarketPriceRepository *GameMarketPriceRepository) FindBy(columnName string, value interface{}) (*model.GameMarketPrice, error) {
 	repositoryName := "GameMarketPrice"
 	methodName := "FindBy"

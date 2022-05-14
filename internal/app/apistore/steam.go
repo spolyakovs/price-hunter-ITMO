@@ -13,10 +13,6 @@ import (
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
 )
 
-// TODO: write APIGog
-
-// TODO: hardcode adding titles that exist in EGS and GOG
-// TODO: hardcode titles by Publisher (Valve, Bethesda ...)
 // TODO: think about sexual content
 type APISteam struct {
 	apiKey string

@@ -52,9 +52,9 @@ type MarketRepository interface {
 type UserGameFavouriteRepository interface {
 	Create(*model.UserGameFavourite) error
 	Find(uint64) (*model.UserGameFavourite, error)
-	FindBy(string, interface{}) (*model.UserGameFavourite, error)
+	// FindBy(string, interface{}) (*model.UserGameFavourite, error)
 	FindByUserGame(*model.User, *model.Game) (*model.UserGameFavourite, error)
-	Update(*model.UserGameFavourite) error
+	// Update(*model.UserGameFavourite) error
 	Delete(uint64) error
 }
 

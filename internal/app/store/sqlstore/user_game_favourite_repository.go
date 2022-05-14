@@ -37,7 +37,6 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) Find(id uint64) 
 	return userGameFavouriteRepository.FindBy("id", id)
 }
 
-// TODO: test especially this (userGameFavourite -> game -> publisher)
 func (userGameFavouriteRepository *UserGameFavouriteRepository) FindBy(columnName string, value interface{}) (*model.UserGameFavourite, error) {
 	repositoryName := "UserGameFavourite"
 	methodName := "FindBy"
@@ -138,37 +137,37 @@ func (userGameFavouriteRepository *UserGameFavouriteRepository) FindByUserGame(u
 	return userGameFavourite, nil
 }
 
-func (userGameFavouriteRepository *UserGameFavouriteRepository) Update(newUserGameFavourite *model.UserGameFavourite) error {
-	repositoryName := "UserGameFavourite"
-	methodName := "Update"
-	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
-
-	updateQuery := "UPDATE user_game_favourites " +
-		"SET game_id = :game.id, " +
-		"user_id = :user.id " +
-		"WHERE id = :id;"
-
-	countResult, err := userGameFavouriteRepository.store.db.NamedExec(
-		updateQuery,
-		newUserGameFavourite,
-	)
-
-	if err != nil {
-		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
-	}
-
-	count, err := countResult.RowsAffected()
-
-	if err != nil {
-		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
-	}
-
-	if count == 0 {
-		return errors.Wrap(store.ErrNotFound, errWrapMessage)
-	}
-
-	return nil
-}
+// func (userGameFavouriteRepository *UserGameFavouriteRepository) Update(newUserGameFavourite *model.UserGameFavourite) error {
+// 	repositoryName := "UserGameFavourite"
+// 	methodName := "Update"
+// 	errWrapMessage := fmt.Sprintf(store.ErrRepositoryMessageFormat, repositoryName, methodName)
+//
+// 	updateQuery := "UPDATE user_game_favourites " +
+// 		"SET game_id = :game.id, " +
+// 		"user_id = :user.id " +
+// 		"WHERE id = :id;"
+//
+// 	countResult, err := userGameFavouriteRepository.store.db.NamedExec(
+// 		updateQuery,
+// 		newUserGameFavourite,
+// 	)
+//
+// 	if err != nil {
+// 		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+// 	}
+//
+// 	count, err := countResult.RowsAffected()
+//
+// 	if err != nil {
+// 		return errors.Wrap(errors.Wrap(store.ErrUnknownSQL, err.Error()), errWrapMessage)
+// 	}
+//
+// 	if count == 0 {
+// 		return errors.Wrap(store.ErrNotFound, errWrapMessage)
+// 	}
+//
+// 	return nil
+// }
 
 func (userGameFavouriteRepository *UserGameFavouriteRepository) Delete(id uint64) error {
 	repositoryName := "UserGameFavourite"

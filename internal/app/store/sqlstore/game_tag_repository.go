@@ -37,7 +37,6 @@ func (gameTagRepository *GameTagRepository) Find(id uint64) (*model.GameTag, err
 	return gameTagRepository.FindBy("id", id)
 }
 
-// TODO: test especially this (gameTag -> game -> publisher)
 func (gameTagRepository *GameTagRepository) FindBy(columnName string, value interface{}) (*model.GameTag, error) {
 	repositoryName := "GameTag"
 	methodName := "Find"

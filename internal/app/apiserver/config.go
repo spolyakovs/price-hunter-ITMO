@@ -13,7 +13,6 @@ type Config struct {
 	SteamAPIKey      string `toml:"STEAM_API_KEY"`
 }
 
-// TODO: think about changing default config
 func NewConfig() *Config {
 	return &Config{
 		BindAddr: ":8080",
