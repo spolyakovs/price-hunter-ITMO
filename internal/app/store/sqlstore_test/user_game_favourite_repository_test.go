@@ -5,10 +5,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
 )
 
 func TestUserGameFavouriteRepositoryFindByUserGame(t *testing.T) {
-	userGameFavouriteWant := userGameFavourites[1]
+	userGameFavouriteWant := sqlstore.TestUserGameFavourites[1]
 
 	userGameFavouriteFound, err := st.UserGameFavourites().FindByUserGame(userGameFavouriteWant.User, userGameFavouriteWant.Game)
 	if err != nil {
@@ -21,7 +22,7 @@ func TestUserGameFavouriteRepositoryFindByUserGame(t *testing.T) {
 }
 
 func TestUserGameFavouriteRepositoryDelete(t *testing.T) {
-	userGameFavouriteWant := userGameFavourites[2]
+	userGameFavouriteWant := sqlstore.TestUserGameFavourites[2]
 
 	userGameFavouriteFound, err := st.UserGameFavourites().Find(userGameFavouriteWant.ID)
 	if err != nil {

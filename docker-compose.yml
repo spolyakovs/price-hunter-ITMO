@@ -1,4 +1,4 @@
-version: "3.8"
+version: "3.9"
 
 services:
   redis:
@@ -43,7 +43,7 @@ services:
         condition: service_healthy
     build:
       context: .
-    image: spolyakovs/price-hunter:v0.2
+    image: spolyakovs/price-hunter:v0.2.1
     ports:
       - "8000:8000"
     networks:

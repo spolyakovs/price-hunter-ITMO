@@ -42,9 +42,9 @@ func Start(config *Config) error {
 	}
 
 	startLogger.Info("Updating games info")
-	if err := updateGames(*config, store); err != nil {
-		return err
-	}
+	// if err := updateGames(*config, store); err != nil {
+	// 	return err
+	// }
 
 	srv := newServer(store)
 	startLogger.Info("Server started")
@@ -60,12 +60,6 @@ func updateGames(config Config, st store.Store) error {
 	if err := apiSteam.GetGames(); err != nil {
 		return err
 	}
-	// if err := apiEpicGames.GetGames(); err != nil {
-	// 	return err
-	// }
-	// if err := apiGOG.GetGames(); err != nil {
-	// 	return err
-	// }
 
 	g := new(errgroup.Group)
 
@@ -79,10 +73,6 @@ func updateGames(config Config, st store.Store) error {
 	if err := g.Wait(); err != nil {
 		return err
 	}
-
-	// if err := apiSteam.UpdateGameMarketPrices(); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }

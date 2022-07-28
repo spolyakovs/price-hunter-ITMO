@@ -32,7 +32,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	if err := insertTestData(st); err != nil {
+	if err := st.InsertTestData(); err != nil {
 		fmt.Printf("Couldn't insert test data into DB:\n\t%s", err.Error())
 		return
 	}

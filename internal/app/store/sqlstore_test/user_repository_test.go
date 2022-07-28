@@ -6,10 +6,11 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
+	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store/sqlstore"
 )
 
 func TestUserRepositoryFind(t *testing.T) {
-	userWant := users[1]
+	userWant := sqlstore.TestUsers[1]
 
 	userByUsername, err := st.Users().FindBy("username", userWant.Username)
 	if err != nil {
@@ -31,7 +32,7 @@ func TestUserRepositoryFind(t *testing.T) {
 }
 
 func TestUserRepositoryUpdateEmail(t *testing.T) {
-	userWant := users[2]
+	userWant := sqlstore.TestUsers[2]
 	userWant.Email = fmt.Sprintf("new_%s", userWant.Email)
 
 	if err := st.Users().UpdateEmail(userWant.Email, userWant.ID); err != nil {
@@ -66,7 +67,7 @@ func TestUserRepositoryUpdateEmail(t *testing.T) {
 }
 
 func TestUserRepositoryUpdatePassword(t *testing.T) {
-	userWant := users[3]
+	userWant := sqlstore.TestUsers[3]
 	newPassword := "new_Password_4"
 
 	if err := st.Users().UpdatePassword(newPassword, userWant.ID); err != nil {
@@ -108,7 +109,7 @@ func TestUserRepositoryUpdatePassword(t *testing.T) {
 }
 
 func TestUserRepositoryDelete(t *testing.T) {
-	userWant := users[4]
+	userWant := sqlstore.TestUsers[4]
 
 	userFound, err := st.Users().Find(userWant.ID)
 	if err != nil {

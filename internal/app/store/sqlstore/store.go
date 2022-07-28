@@ -1,23 +1,10 @@
 package sqlstore
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/spolyakovs/price-hunter-ITMO/internal/app/store"
-)
-
-var (
-	pointsByPlace = map[int]int{
-		1:  25,
-		2:  18,
-		3:  15,
-		4:  12,
-		5:  10,
-		6:  8,
-		7:  6,
-		8:  4,
-		9:  2,
-		10: 1,
-	}
 )
 
 type Store struct {
@@ -43,6 +30,11 @@ func New(db *sqlx.DB) (*Store, error) {
 	}
 
 	if err := newStore.insertDataMarkets(); err != nil {
+		return nil, err
+	}
+
+	if err := newStore.InsertTestData(); err != nil {
+		fmt.Printf("Couldn't insert test data into DB:\n\t%s", err.Error())
 		return nil, err
 	}
 
